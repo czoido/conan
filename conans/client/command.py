@@ -560,7 +560,7 @@ class Command(object):
                             help='Show package paths in local cache')
         parser.add_argument("-bo", "--build-order",
                             help='given a modified reference, return an ordered list to build (CI)',
-                            nargs=1, action=Extender)
+                            nargs='*', action=Extender)
         parser.add_argument("-g", "--graph", action=OnceArgument,
                             help='Creates file with project dependencies graph. It will generate '
                             'a DOT or HTML file depending on the filename extension')
