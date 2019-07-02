@@ -1,4 +1,5 @@
 from conans.model.ref import PackageReference
+from conans.errors import ConanException
 
 RECIPE_DOWNLOADED = "Downloaded"
 RECIPE_INCACHE = "Cache"  # The previously installed recipe in cache is being used
@@ -201,6 +202,9 @@ class DepsGraph(object):
     def _inverse_closure(self, references):
         closure = set()
         current = [n for n in self.nodes if str(n.ref) in references or "ALL" in references]
+        if len(current) < len(references) and "ALL" not in references:
+            not_found = [n for n in references if n not in str(self.nodes)]
+            raise ConanException("References not found in graph %s" % str(not_found))
         closure.update(current)
         while current:
             new_current = set()
