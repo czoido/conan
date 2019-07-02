@@ -203,7 +203,8 @@ class DepsGraph(object):
         closure = set()
         current = [n for n in self.nodes if str(n.ref) in references or "ALL" in references]
         if len(current) < len(references) and "ALL" not in references:
-            not_found = [n for n in references if n not in str(self.nodes)]
+            graph_references = [str(node) for node in self.nodes]
+            not_found = [n for n in references if n not in graph_references]
             raise ConanException("References not found in graph %s" % str(not_found))
         closure.update(current)
         while current:
