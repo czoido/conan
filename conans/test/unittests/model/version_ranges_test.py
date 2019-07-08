@@ -103,3 +103,16 @@ class BasicMaxVersionTest(unittest.TestCase):
             satisfying(["2.1.1"], "2.3 3.2, include_prerelease=Ture, loose=False", output)
         with self.assertRaises(ConanException):
             satisfying(["2.1.1"], "~2.3, abc, loose=False", output)
+
+    def deterministic_build_metadata_range_test(self):
+        output = TestBufferConanOutput()
+        result = satisfying(["1.1.1+20130313344700", "1.1.1+20130313544700", "1.1.1+00002313144700",
+                             "1.1.1+20990313144700"], ">1.0", output)
+        self.assertEqual(result, "1.1.1+20990313144700")
+        result = satisfying(["1.1.1+A01", "1.1.1+ZZZ", "1.1.1+C01",
+                             "1.1.1+901"], ">1.0", output)
+        self.assertEqual(result, "1.1.1+ZZZ")
+        result = satisfying(["1.1.1+exp.sha.0000f85", "1.1.1+exp.sha.5e14f85",
+                             "1.1.1+exp.sha.zz13f85",
+                             "1.1.1+exp.sha.511gf85"], "<1.3", output)
+        self.assertEqual(result, "1.1.1+exp.sha.zz13f85")
