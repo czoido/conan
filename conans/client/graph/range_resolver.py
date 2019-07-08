@@ -1,4 +1,5 @@
 import re
+from collections import OrderedDict
 
 from conans.errors import ConanException
 from conans.model.ref import ConanFileReference
@@ -75,6 +76,7 @@ def satisfying(list_versions, versionexpr, result):
             result.append("WARN: Version '%s' is not semver, cannot be compared with a range"
                           % str(v))
 
+    candidates = OrderedDict(sorted(candidates.items(), key=lambda x: x[1].build))
     # Search best matching version in range
     result = max_satisfying(candidates, act_range, loose=loose,
                             include_prerelease=include_prerelease)
