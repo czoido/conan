@@ -86,11 +86,20 @@ class CmdUpload(object):
                                                           query, package_id)
         # Do the job
         self._num_threads = tools.cpu_count() if parallel_upload else 1
+
         for remote, refs in refs_by_remote.items():
             self._user_io.out.info("Uploading to remote '{}':".format(remote.name))
-            for (ref, conanfile, prefs) in refs:
+
+            def upload_ref(ref_conanfile_prefs):
+                ref, conanfile, prefs = ref_conanfile_prefs
                 self._upload_ref(conanfile, ref, prefs, retry, retry_wait,
                                  integrity_check, policy, remote, upload_recorder, remotes)
+
+            references_pool = ThreadPool(self._num_threads)
+            results = references_pool.map(upload_ref, [(ref, conanfile, prefs)
+                                                             for (ref, conanfile, prefs) in refs])
+            references_pool.close()
+            references_pool.join()
 
         logger.debug("UPLOAD: Time manager upload: %f" % (time.time() - t1))
 
