@@ -2,6 +2,7 @@ import os
 import six
 import sys
 from colorama import Fore, Style
+from tqdm import tqdm
 
 from conans.util.env_reader import get_env
 from conans.util.files import decode_text
@@ -88,9 +89,9 @@ class ConanOutput(object):
         for _ in range(3):
             try:
                 if error:
-                    self._stream_err.write(data)
+                    tqdm.write(data, file=self._stream_err, end="")
                 else:
-                    self._stream.write(data)
+                    tqdm.write(data, file=self._stream, end="")
                 break
             except IOError:
                 import time
