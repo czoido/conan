@@ -3,6 +3,8 @@ import stat
 import tarfile
 import time
 from collections import defaultdict
+import multiprocessing
+from multiprocessing.pool import ThreadPool
 
 from tqdm import tqdm
 
@@ -73,6 +75,7 @@ class CmdUpload(object):
         self._remote_manager = remote_manager
         self._loader = loader
         self._hook_manager = hook_manager
+        self._num_threads = 1
 
     def upload(self, reference_or_pattern, remotes, upload_recorder, package_id=None,
                all_packages=None, confirm=False, retry=None, retry_wait=None, integrity_check=False,
@@ -82,6 +85,7 @@ class CmdUpload(object):
         refs_by_remote = self._collect_packages_to_upload(refs, confirm, remotes, all_packages,
                                                           query, package_id)
         # Do the job
+        self._num_threads = tools.cpu_count() if parallel_upload else 1
         for remote, refs in refs_by_remote.items():
             self._user_io.out.info("Uploading to remote '{}':".format(remote.name))
             for (ref, conanfile, prefs) in refs:
@@ -193,14 +197,23 @@ class CmdUpload(object):
         # Now the binaries
         if prefs:
             total = len(prefs)
-            for index, pref in enumerate(prefs):
-                p_remote = recipe_remote
+            p_remote = recipe_remote
+
+            def upload_package_index(index_pref):
+                index, pref = index_pref
                 msg = ("Uploading package %d/%d: %s to '%s'" % (index+1, total, str(pref.id),
                                                                 p_remote.name))
                 self._user_io.out.info(msg)
-                self._upload_package(pref, retry, retry_wait,
-                                     integrity_check, policy, p_remote)
+                ret = self._upload_package(pref, retry, retry_wait, integrity_check, policy,
+                                           p_remote)
                 upload_recorder.add_package(pref, p_remote.name, p_remote.url)
+                return ret
+
+            pool = ThreadPool(min(self._num_threads, total))
+            results = pool.map(upload_package_index, [(index, pref) for index, pref
+                                                      in enumerate(prefs)])
+            pool.close()
+            pool.join()
 
         # FIXME: I think it makes no sense to specify a remote to "post_upload"
         # FIXME: because the recipe can have one and the package a different one
