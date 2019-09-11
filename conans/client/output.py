@@ -81,17 +81,17 @@ class ConanOutput(object):
 
         if self._color and (front or back):
             data = "%s%s%s%s" % (front or '', back or '', data, Style.RESET_ALL)
-        if newline:
-            data = "%s\n" % data
+
+        end = "\n" if newline else ""
 
         # https://github.com/conan-io/conan/issues/4277
         # Windows output locks produce IOErrors
         for _ in range(3):
             try:
                 if error:
-                    tqdm.write(data, file=self._stream_err, end="")
+                    tqdm.write(data, file=self._stream_err, end=end)
                 else:
-                    tqdm.write(data, file=self._stream, end="")
+                    tqdm.write(data, file=self._stream, end=end)
                 break
             except IOError:
                 import time
