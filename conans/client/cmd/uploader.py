@@ -85,7 +85,7 @@ class CmdUpload(object):
         refs_by_remote = self._collect_packages_to_upload(refs, confirm, remotes, all_packages,
                                                           query, package_id)
         # Do the job
-        self._num_threads = tools.cpu_count() if parallel_upload else 1
+        self._num_threads = 6 if parallel_upload else 1
 
         for remote, refs in refs_by_remote.items():
             self._user_io.out.info("Uploading to remote '{}':".format(remote.name))
@@ -96,8 +96,8 @@ class CmdUpload(object):
                                  integrity_check, policy, remote, upload_recorder, remotes)
 
             references_pool = ThreadPool(self._num_threads)
-            results = references_pool.map(upload_ref, [(ref, conanfile, prefs)
-                                                             for (ref, conanfile, prefs) in refs])
+            references_pool.map(upload_ref, [(ref, conanfile, prefs)
+                                                       for (ref, conanfile, prefs) in refs])
             references_pool.close()
             references_pool.join()
 
@@ -219,7 +219,7 @@ class CmdUpload(object):
                 return ret
 
             pool = ThreadPool(min(self._num_threads, total))
-            results = pool.map(upload_package_index, [(index, pref) for index, pref
+            pool.map(upload_package_index, [(index, pref) for index, pref
                                                       in enumerate(prefs)])
             pool.close()
             pool.join()
