@@ -197,7 +197,7 @@ class BuildInfoCreator(object):
         modules = self.process_lockfile()
         # Add extra information
         ret = {"version": "1.0.1",
-               "name": properties["artifact_property_build.name"],
+               "name": properties["artifact_property_build.name"].replace("\\", ""),
                "number": properties["artifact_property_build.number"],
                "type": "GENERIC",
                "started": datetime.datetime.utcnow().isoformat().split(".")[0] + ".000Z",
