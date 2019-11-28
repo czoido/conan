@@ -218,7 +218,7 @@ class BuildInfoCreator(object):
             raise TypeError
 
         with open(self._build_info_file, "w") as f:
-            f.write(json.dumps(ret, indent=4, default=dump_custom_types))
+            f.write(json.dumps(ret, default=dump_custom_types))
 
 
 def create_build_info(output, build_info_file, lockfile, multi_module, skip_env, user, password,
@@ -318,4 +318,4 @@ def update_build_info(buildinfo, output_file):
         build_info = merge_buildinfo(build_info, data)
 
     with open(output_file, "w") as f:
-        f.write(json.dumps(build_info, indent=4))
+        f.write(json.dumps(build_info))
