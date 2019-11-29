@@ -217,8 +217,7 @@ class BuildInfoCreator(object):
                 return sorted(artifacts, key=lambda u: u.get("name") or u.get("id"))
             raise TypeError
 
-        with open(self._build_info_file, "w") as f:
-            f.write(normalize(json.dumps(ret, default=dump_custom_types)))
+        save(self._build_info_file, json.dumps(ret, default=dump_custom_types))
 
 
 def create_build_info(output, build_info_file, lockfile, multi_module, skip_env, user, password,
@@ -234,7 +233,7 @@ def start_build_info(output, build_name, build_number):
               ARTIFACTS_PROPERTIES_PUT_PREFIX + "build.number={}\n".format(build_number)
     artifact_properties_file = paths.artifacts_properties_path
     try:
-        save(artifact_properties_file, normalize(content))
+        save(artifact_properties_file, content)
     except Exception:
         raise ConanException("Can't write properties file in %s" % artifact_properties_file)
 
@@ -317,5 +316,4 @@ def update_build_info(buildinfo, output_file):
 
         build_info = merge_buildinfo(build_info, data)
 
-    with open(output_file, "w") as f:
-        f.write(normalize(json.dumps(build_info)))
+    save(output_file, json.dumps(build_info))
