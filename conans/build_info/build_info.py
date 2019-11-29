@@ -12,7 +12,7 @@ from conans.errors import AuthenticationException, RequestErrorException, ConanE
 from conans.model.ref import ConanFileReference
 from conans.paths import ARTIFACTS_PROPERTIES_PUT_PREFIX
 from conans.paths import get_conan_user_home
-from conans.util.files import save
+from conans.util.files import save, normalize
 
 
 class Artifact(namedtuple('Artifact', ["sha1", "md5", "name", "id"])):
@@ -158,7 +158,7 @@ class BuildInfoCreator(object):
                 artifacts.update(_gather_deps(id_node, contents, func))
             return artifacts
 
-        with open(self._lockfile, newline="\n") as json_data:
+        with open(self._lockfile) as json_data:
             data = json.load(json_data)
 
         # Gather modules, their artifacts and recursively all required artifacts
@@ -218,7 +218,7 @@ class BuildInfoCreator(object):
             raise TypeError
 
         with open(self._build_info_file, "w") as f:
-            f.write(json.dumps(ret, default=dump_custom_types))
+            f.write(normalize(json.dumps(ret, indent=4, default=dump_custom_types)))
 
 
 def create_build_info(output, build_info_file, lockfile, multi_module, skip_env, user, password,
@@ -234,7 +234,7 @@ def start_build_info(output, build_name, build_number):
               ARTIFACTS_PROPERTIES_PUT_PREFIX + "build.number={}\n".format(build_number)
     artifact_properties_file = paths.artifacts_properties_path
     try:
-        save(artifact_properties_file, content)
+        save(artifact_properties_file, normalize(content))
     except Exception:
         raise ConanException("Can't write properties file in %s" % artifact_properties_file)
 
@@ -249,7 +249,7 @@ def stop_build_info(output):
 
 
 def publish_build_info(build_info_file, url, user, password, apikey):
-    with open(build_info_file, newline="\n") as json_data:
+    with open(build_info_file) as json_data:
         parsed_uri = urlparse(url)
         request_url = "{uri.scheme}://{uri.netloc}/artifactory/api/build".format(uri=parsed_uri)
         if user and password:
@@ -318,4 +318,4 @@ def update_build_info(buildinfo, output_file):
         build_info = merge_buildinfo(build_info, data)
 
     with open(output_file, "w") as f:
-        f.write(json.dumps(build_info))
+        f.write(normalize(json.dumps(build_info, indent=4)))
