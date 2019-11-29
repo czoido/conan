@@ -158,7 +158,7 @@ class BuildInfoCreator(object):
                 artifacts.update(_gather_deps(id_node, contents, func))
             return artifacts
 
-        with open(self._lockfile) as json_data:
+        with open(self._lockfile, newline="\n") as json_data:
             data = json.load(json_data)
 
         # Gather modules, their artifacts and recursively all required artifacts
@@ -249,7 +249,7 @@ def stop_build_info(output):
 
 
 def publish_build_info(build_info_file, url, user, password, apikey):
-    with open(build_info_file) as json_data:
+    with open(build_info_file, newline="\n") as json_data:
         parsed_uri = urlparse(url)
         request_url = "{uri.scheme}://{uri.netloc}/artifactory/api/build".format(uri=parsed_uri)
         if user and password:
