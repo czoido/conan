@@ -12,7 +12,7 @@ from conans.errors import AuthenticationException, RequestErrorException, ConanE
 from conans.model.ref import ConanFileReference
 from conans.paths import ARTIFACTS_PROPERTIES_PUT_PREFIX
 from conans.paths import get_conan_user_home
-from conans.util.files import save, normalize
+from conans.util.files import save
 
 
 class Artifact(namedtuple('Artifact', ["sha1", "md5", "name", "id"])):
