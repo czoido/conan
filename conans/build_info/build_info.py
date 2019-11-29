@@ -217,7 +217,7 @@ class BuildInfoCreator(object):
                 return sorted(artifacts, key=lambda u: u.get("name") or u.get("id"))
             raise TypeError
 
-        save(self._build_info_file, json.dumps(ret, default=dump_custom_types))
+        save(self._build_info_file, json.dumps(ret, indent=4, default=dump_custom_types))
 
 
 def create_build_info(output, build_info_file, lockfile, multi_module, skip_env, user, password,
@@ -316,4 +316,4 @@ def update_build_info(buildinfo, output_file):
 
         build_info = merge_buildinfo(build_info, data)
 
-    save(output_file, json.dumps(build_info))
+    save(output_file, json.dumps(build_info, indent=4))
