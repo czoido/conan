@@ -93,6 +93,20 @@ class GraphLockCustomFilesTest(unittest.TestCase):
         self._check_lock("PkgB/0.1@")
 
 
+class GraphLockInstall(unittest.TestCase):
+    def install_creates_lockfile_test(self):
+        client = TestClient()
+        client.save({"conanfile.py": GenConanfile().with_name("PkgA").with_version("0.1")})
+        client.run("export . PkgA/0.1@user/channel")
+
+        client.save({"conanfile.py": GenConanfile().with_name("PkgB").with_version("0.1")
+                                                   .with_require_plain("PkgA/0.1@user/channel")})
+        client.run("export . PkgB/0.1@user/channel")
+
+        client.run("install PkgB/0.1@user/channel --build missing")
+        self.assertTrue(os.path.exists("conan.lock"))
+
+
 class ReproducibleLockfiles(unittest.TestCase):
     def reproducible_lockfile_test(self):
         client = TestClient()
