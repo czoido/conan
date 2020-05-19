@@ -174,8 +174,8 @@ class BuildInfoCreator(object):
                 # Create module for the recipe reference
                 recipe_key = self._get_reference(pref)
                 modules[recipe_key]["id"] = recipe_key
-                modules[recipe_key]["artifacts"].update(
-                    self._get_recipe_artifacts(pref, is_dependency=False))
+                modules[recipe_key]["dependencies"].update(
+                    self._get_recipe_artifacts(pref, is_dependency=True))
                 # TODO: what about `python_requires`?
                 # TODO: can we associate any properties to the recipe? Profile/options may be different per lockfile
 
