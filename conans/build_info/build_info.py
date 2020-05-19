@@ -182,8 +182,8 @@ class BuildInfoCreator(object):
                 # Create module for the package_id
                 package_key = self._get_package_reference(pref)
                 modules[package_key]["id"] = package_key
-                modules[package_key]["artifacts"].update(
-                    self._get_package_artifacts(pref, is_dependency=False))
+                modules[package_key]["dependencies"].update(
+                    self._get_package_artifacts(pref, is_dependency=True))
 
                 # Recurse requires
                 node_ids = node.get("requires", []) + node.get("build_requires", [])
