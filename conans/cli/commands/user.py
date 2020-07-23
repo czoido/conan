@@ -25,7 +25,7 @@ def user_list(*args, conan_api, parser, subparser):
     subparser.add_argument("-r", "--remote", action=Extender, nargs="?",
                            help="Remotes to show the users from. Multiple remotes can be "
                                 "specified: -r remote1 -r remote2. Also wildcards can be "
-                                "used. -r '*' will show the users for all the remotes. "
+                                "used. -r \"*\" will show the users for all the remotes. "
                                 "If no remote is specified it will show the users for all "
                                 "the remotes")
     args = parser.parse_args(*args)
@@ -53,7 +53,7 @@ def user_add(*args, conan_api, parser, subparser):
                            help="User password. Use double quotes if password with "
                                 "spacing, and escape quotes if existing. If empty, the "
                                 "password is requested interactively (not exposed)")
-    subparser.add_argument("-p", "--password", action=OnceArgument,
+    subparser.add_argument("-p", "--password", action=OnceArgument, nargs="?",
                            help="User password. Use double quotes if password with "
                                 "spacing, and escape quotes if existing. If empty, the "
                                 "password is requested interactively (not exposed)")
@@ -70,7 +70,7 @@ def user_remove(*args, conan_api, parser, subparser):
     """
     subparser.add_argument("remote",
                            help="Remote name. Accepts 'fnmatch' style wildcards. "
-                                "To remove the user for all remotes use: conan remote remove '*'")
+                                "To remove the user for all remotes use: conan remote remove \"*\"")
     args = parser.parse_args(*args)
     return {}
 
@@ -88,7 +88,7 @@ def user_update(*args, conan_api, parser, subparser):
     subparser.add_argument("-n", "--name", action=OnceArgument,
                            help="Name of the new user. If no name is specified the "
                                 "command will update the current user.")
-    subparser.add_argument("-p", "--password", nargs="?", const="", type=str, action=OnceArgument,
+    subparser.add_argument("-p", "--password", nargs="?", action=OnceArgument,
                            help="Update user password. Use double quotes if password "
                                 "with spacing, and escape quotes if existing. If "
                                 "empty, the password is requested interactively "
@@ -97,7 +97,7 @@ def user_update(*args, conan_api, parser, subparser):
     return {}
 
 
-@conan_command(group="Misc commands")
+@conan_command(group="Misc")
 def user(*args, conan_api, parser, **kwargs):
     """
     Authenticates against a remote with user/pass, caching the auth token.
