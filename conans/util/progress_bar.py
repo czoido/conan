@@ -4,7 +4,7 @@ import time
 
 from tqdm import tqdm
 
-from conans.client.output import ConanOutput
+from conans.client.output import _ConanOutput
 
 TIMEOUT_BEAT_SECONDS = 30
 TIMEOUT_BEAT_CHARACTER = '.'
@@ -20,7 +20,7 @@ def left_justify_description(msg):
     return msg.ljust(LEFT_JUSTIFY_DESC)
 
 
-class ProgressOutput(ConanOutput):
+class ProgressOutput(_ConanOutput):
     def __init__(self, output):
         super(ProgressOutput, self).__init__(output._stream, output._stream_err, output._color)
 
