@@ -73,7 +73,7 @@ if get_env("CONAN_COLOR_DARK", 0):
     Color.BRIGHT_GREEN = Fore.GREEN
 
 
-class ConanOutput(object):
+class ConanOutputV2(object):
     """ wraps an output stream, so it can be pretty colored,
     and auxiliary info, success, warn methods for convenience.
     """
@@ -158,7 +158,7 @@ class ConanOutput(object):
         self._stream.flush()
 
 
-class ScopedOutput(ConanOutput):
+class ScopedOutput(ConanOutputV2):
     def __init__(self, scope, output):
         self.scope = scope
         self._stream = output._stream

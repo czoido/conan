@@ -75,13 +75,13 @@ if get_env("CONAN_COLOR_DARK", 0):
 
 def ConanOutput(*args, **kwargs):
     if get_env("CONAN_V2_CLI", False):
-        from conans.cli.output import ConanOutput
-        return ConanOutput(*args, **kwargs)
+        from conans.cli.output import ConanOutputV2
+        return ConanOutputV2(*args, **kwargs)
     else:
-        return _ConanOutput(*args, **kwargs)
+        return ConanOutputV1(*args, **kwargs)
 
 
-class _ConanOutput(object):
+class ConanOutputV1(object):
     """ wraps an output stream, so it can be pretty colored,
     and auxiliary info, success, warn methods for convenience.
     """
@@ -166,7 +166,7 @@ class _ConanOutput(object):
         self._stream.flush()
 
 
-class ScopedOutput(_ConanOutput):
+class ScopedOutput(ConanOutputV1):
     def __init__(self, scope, output):
         self.scope = scope
         self._stream = output._stream
