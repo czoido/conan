@@ -29,13 +29,7 @@ def user_list(*args, conan_api, parser, subparser):
                                 "If no remote is specified it will show the users for all "
                                 "the remotes")
     args = parser.parse_args(*args)
-    if not args.remote or "*" in args.remote:
-        info = {"results": {"remote1": {"user": "someuser1"},
-                            "remote2": {"user": "someuser2"},
-                            "remote3": {"user": "someuser3"},
-                            "remote4": {"user": "someuser4"}}}
-    else:
-        info = {"results": {"remote1": {"user": "someuser1"}}}
+    info = conan_api.user_list(args.remote)
     return info
 
 
