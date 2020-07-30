@@ -2,6 +2,7 @@ import os
 import shutil
 import textwrap
 import time
+import logging
 from multiprocessing.pool import ThreadPool
 
 from conans.client import tools
@@ -25,7 +26,7 @@ from conans.model.build_info import CppInfo, DepCppInfo
 from conans.model.editable_layout import EditableLayout
 from conans.model.env_info import EnvInfo
 from conans.model.graph_info import GraphInfo
-from conans.model.graph_lock import GraphLockNode
+from conans.model.graph_lock import GraphLockFile
 from conans.model.info import PACKAGE_ID_UNKNOWN
 from conans.model.ref import PackageReference
 from conans.model.user_info import DepsUserInfo
@@ -35,8 +36,9 @@ from conans.util.conan_v2_mode import CONAN_V2_MODE_ENVVAR
 from conans.util.env_reader import get_env
 from conans.util.files import (clean_dirty, is_dirty, make_read_only, mkdir, rmdir, save, set_dirty,
                                set_dirty_context_manager)
-from conans.util.log import logger
 from conans.util.tracer import log_package_built, log_package_got_from_local_cache
+
+logger = logging.getLogger("conans")
 
 
 def build_id(conan_file):
@@ -215,7 +217,8 @@ class _PackageBuilder(object):
                         self._build(conanfile, pref)
                         clean_dirty(build_folder)
 
-                    prev = self._package(conanfile, pref, package_layout, conanfile_path, build_folder, package_folder)
+                    prev = self._package(conanfile, pref, package_layout, conanfile_path,
+                                         build_folder, package_folder)
                     assert prev
                     node.prev = prev
                     log_file = os.path.join(build_folder, RUN_LOG_NAME)
@@ -223,7 +226,8 @@ class _PackageBuilder(object):
                     log_package_built(pref, time.time() - t1, log_file)
                     recorder.package_built(pref)
                 except ConanException as exc:
-                    recorder.package_install_error(pref, INSTALL_ERROR_BUILDING, str(exc), remote_name=None)
+                    recorder.package_install_error(pref, INSTALL_ERROR_BUILDING, str(exc),
+                                                   remote_name=None)
                     raise exc
 
             return node.pref
@@ -456,6 +460,10 @@ class BinaryInstaller(object):
                 graph_info_node.graph_lock = graph_info.graph_lock
                 graph_info_node.save(build_folder)
                 output.info("Generated graphinfo")
+                graph_lock_file = GraphLockFile(graph_info.profile_host, graph_info.profile_build,
+                                                graph_info.graph_lock)
+                graph_lock_file.save(os.path.join(build_folder, "conan.lock"))
+
                 save(os.path.join(build_folder, BUILD_INFO), TXTGenerator(node.conanfile).content)
                 output.info("Generated %s" % BUILD_INFO)
                 # Build step might need DLLs, binaries as protoc to generate source files
@@ -511,7 +519,7 @@ class BinaryInstaller(object):
         builder = _PackageBuilder(self._cache, output, self._hook_manager, self._remote_manager)
         pref = builder.build_package(node, keep_build, self._recorder, remotes)
         if node.graph_lock_node:
-            node.graph_lock_node.modified = GraphLockNode.MODIFIED_BUILT
+            node.graph_lock_node.prev = pref.revision
         return pref
 
     def _propagate_info(self, node, using_build_profile):
