@@ -40,6 +40,8 @@ def api_method(f):
         except EnvironmentError:
             old_curdir = None
         old_output = api.user_io.out
+        # CLI2.0: if using the conan_api directly we initialize with a null handler
+        # the user can change this handler in his application
         quiet_output = ConanOutput(StringIO(), color=api.color) if quiet else None
         try:
             api.create_app(quiet_output=quiet_output)
