@@ -142,12 +142,12 @@ class ConanAPIV2(object):
     @api_method
     def user_list(self, remote_name=None):
         if not remote_name or "*" in remote_name:
-            info = {"results": {"remote1": {"user": "someuser1"},
-                                "remote2": {"user": "someuser2"},
-                                "remote3": {"user": "someuser3"},
-                                "remote4": {"user": "someuser4"}}}
+            info = {"remote1": {"user": "someuser1"},
+                    "remote2": {"user": "someuser2"},
+                    "remote3": {"user": "someuser3"},
+                    "remote4": {"user": "someuser4"}}
         else:
-            info = {"results": {"{}".format(remote_name): {"user": "someuser1"}}}
+            info = {"{}".format(remote_name): {"user": "someuser1"}}
         return info
 
     @api_method
