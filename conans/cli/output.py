@@ -78,10 +78,10 @@ class ConanOutput(object):
     and auxiliary info, success, warn methods for convenience.
     """
 
-    def __init__(self, stream, stream_err=None, color=False):
-        self._stream = stream
-        self._stream_err = stream_err or stream
-        self._color = color
+    def __init__(self):
+        self._color = colorama_initialize()
+        self._stream = sys.stdout
+        self._stream_err = sys.stderr
 
     @property
     def is_terminal(self):
