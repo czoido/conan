@@ -1,8 +1,8 @@
+import logging
 import os
 import sys
 from io import StringIO
 
-import conans
 from conans import __version__ as client_version
 from conans.client.cache.cache import ClientCache
 from conans.client.graph.graph_binaries import GraphBinariesAnalyzer
@@ -29,7 +29,7 @@ from conans.util.conan_v2_mode import CONAN_V2_MODE_ENVVAR
 from conans.util.env_reader import get_env
 from conans.util.files import exception_message_safe
 from conans.util.log import configure_logger
-from conans.cli.conan_logging import log_command, log_exception
+from conans.util.tracer import log_command, log_exception
 
 
 def api_method(f):
@@ -79,9 +79,11 @@ class ConanApp(object):
             self.user_io.disable_input()
 
         # Adjust CONAN_LOGGING_LEVEL with the env readed
-        conans.util.log.logger = configure_logger(self.config.logging_level,
-                                                  self.config.logging_file)
-        conans.util.log.logger.debug("INIT: Using config '%s'" % self.cache.conan_conf_path)
+        configure_logger(self.config.logging_level,
+                         self.config.logging_file)
+
+        logger = logging.getLogger("conans")
+        logger.debug("INIT: Using config '%s'" % self.cache.conan_conf_path)
 
         self.hook_manager = HookManager(self.cache.hooks_path, self.config.hooks, self.out)
         # Wraps an http_requester to inject proxies, certs, etc
