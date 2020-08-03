@@ -149,7 +149,7 @@ def main(args):
         6: Invalid configuration (done)
     """
     try:
-        conan_api = Conan()  # FIXME: Conan factory will be removed in Conan 2.0
+        conan_api = Conan()
     except ConanMigrationError:  # Error migrating
         sys.exit(ERROR_MIGRATION)
     except ConanException as e:
