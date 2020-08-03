@@ -1,6 +1,8 @@
+import logging
 import os
-import six
 import sys
+
+import six
 from colorama import Fore, Style
 
 from conans.util.env_reader import get_env
@@ -30,7 +32,7 @@ def colorama_initialize():
     # Respect color env setting or check tty if unset
     color_set = "CONAN_COLOR_DISPLAY" in os.environ
     if ((color_set and get_env("CONAN_COLOR_DISPLAY", 1))
-            or (not color_set and isatty)):
+        or (not color_set and isatty)):
         import colorama
         if get_env("PYCHARM_HOSTED"):  # in PyCharm disable convert/strip
             colorama.init(convert=False, strip=False)
@@ -72,23 +74,51 @@ if get_env("CONAN_COLOR_DARK", 0):
     Color.BRIGHT_YELLOW = Fore.MAGENTA
     Color.BRIGHT_GREEN = Fore.GREEN
 
+try:
+    from logging import NullHandler
+except ImportError:
+    class NullHandler(logging.Handler):
+        def handle(self, record):
+            pass
+
+        def emit(self, record):
+            pass
+
+        def createLock(self):
+            self.lock = None
+
 
 class ConanOutput(object):
     """ wraps an output stream, so it can be pretty colored,
     and auxiliary info, success, warn methods for convenience.
     """
 
-    def __init__(self):
+    def __init__(self, stdout=sys.stdout, stderr=sys.stderr):
         self._color = colorama_initialize()
-        self._stream = sys.stdout
-        self._stream_err = sys.stderr
+        self._stream = stdout
+        self._stream_err = stderr
+        if self._stream is None and self._stream_err is None:
+            self._get_logger("conan.output").addHandler(NullHandler())
+            self._get_logger("conan.cli").addHandler(NullHandler())
+        if self._stream_err:
+            stderr_handler = logging.StreamHandler(self._stream_err)
+            stderr_formatter = logging.Formatter('OUTPUT: %(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            stderr_handler.setFormatter(stderr_formatter)
+            logging.getLogger("conan.output").addHandler(stderr_handler)
+            logging.getLogger("conan.output").setLevel(logging.INFO)
+        if self._stream:
+            stdout_handler = logging.StreamHandler(self._stream)
+            stdout_formatter = logging.Formatter('CLI: %(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            stdout_handler.setFormatter(stdout_formatter)
+            logging.getLogger("conan.cli").addHandler(stdout_handler)
+            logging.getLogger("conan.cli").setLevel(logging.INFO)
 
     @property
     def is_terminal(self):
         return hasattr(self._stream, "isatty") and self._stream.isatty()
 
-    def writeln(self, data, front=None, back=None, error=False):
-        self.write(data, front, back, newline=True, error=error)
+    def writeln(self, data, front=None, back=None):
+        self.write(data, front, back, newline=True)
 
     def _write(self, data, newline=False):
         if newline:
@@ -100,11 +130,7 @@ class ConanOutput(object):
             data = "%s\n" % data
         self._stream_err.write(data)
 
-    def write(self, data, front=None, back=None, newline=False, error=False):
-        if six.PY2:
-            if isinstance(data, str):
-                data = decode_text(data)  # Keep python 2 compatibility
-
+    def write(self, data, front=None, back=None, newline=False):
         if self._color and (front or back):
             data = "%s%s%s%s" % (front or '', back or '', data, Style.RESET_ALL)
 
@@ -112,10 +138,8 @@ class ConanOutput(object):
         # Windows output locks produce IOErrors
         for _ in range(3):
             try:
-                if error:
-                    self._write_err(data, newline)
-                else:
-                    self._write(data, newline)
+                logger = logging.getLogger("conan.output")
+                logger.info(data)
                 break
             except IOError:
                 import time
@@ -123,7 +147,7 @@ class ConanOutput(object):
             except UnicodeError:
                 data = data.encode("utf8").decode("ascii", "ignore")
 
-        self._stream.flush()
+        self.flush()
 
     def info(self, data):
         self.writeln(data, Color.BRIGHT_CYAN)
@@ -135,10 +159,10 @@ class ConanOutput(object):
         self.writeln(data, Color.BRIGHT_GREEN)
 
     def warn(self, data):
-        self.writeln("WARN: {}".format(data), Color.BRIGHT_YELLOW, error=True)
+        self.writeln("WARN: {}".format(data), Color.BRIGHT_YELLOW)
 
     def error(self, data):
-        self.writeln("ERROR: {}".format(data), Color.BRIGHT_RED, error=True)
+        self.writeln("ERROR: {}".format(data), Color.BRIGHT_RED)
 
     def input_text(self, data):
         self.write(data, Color.GREEN)
@@ -156,6 +180,7 @@ class ConanOutput(object):
 
     def flush(self):
         self._stream.flush()
+        self._stream_err.flush()
 
 
 class ScopedOutput(ConanOutput):
