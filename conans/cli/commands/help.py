@@ -1,5 +1,6 @@
 import textwrap
 
+from conans.cli.output import style_text
 from conans.client.output import Color
 from conans.errors import ConanException
 from conans.cli.command import conan_command
@@ -13,10 +14,10 @@ def output_help_cli(out, commands, groups):
     fmt = '  %-{}s'.format(max_len)
 
     for group_name, comm_names in groups.items():
-        out.writeln(group_name, Color.BRIGHT_MAGENTA)
+        out.writeln(style_text(group_name, Color.BRIGHT_MAGENTA))
         for name in comm_names:
             # future-proof way to ensure tabular formatting
-            out.write(fmt % name, Color.GREEN)
+            out.write(style_text(fmt % name, Color.GREEN))
 
             # Help will be all the lines up to the first empty one
             docstring_lines = commands[name].doc.split('\n')
@@ -35,7 +36,7 @@ def output_help_cli(out, commands, groups):
             out.writeln(txt)
 
     out.writeln("")
-    out.writeln('Conan commands. Type "conan <command> -h" for help', Color.BRIGHT_YELLOW)
+    out.writeln(style_text('Conan commands. Type "conan <command> -h" for help', Color.BRIGHT_YELLOW))
 
 
 @conan_command(group="Misc", formatters={"cli": output_help_cli})

@@ -3,22 +3,23 @@ import json
 from conans.client.output import Color
 from conans.errors import NoRemoteAvailable
 from conans.cli.command import conan_command, Extender
+from conans.cli.output import style_text
 
 
 def output_search_cli(info, out):
     results = info["results"]
     for remote_info in results:
         source = "cache" if remote_info["remote"] is None else str(remote_info["remote"])
-        out.writeln("{}:".format(source), Color.BRIGHT_WHITE)
+        out.cli(style_text("{}:".format(source), Color.BRIGHT_WHITE))
         for conan_item in remote_info["items"]:
             reference = conan_item["recipe"]["id"]
-            out.writeln(" {}".format(reference))
+            out.cli(" {}".format(reference))
 
 
 def output_search_json(info, out):
     results = info["results"]
     myjson = json.dumps(results, indent=4)
-    out.writeln(myjson)
+    out.cli(myjson)
 
 
 def apiv2_search_recipes(query, remote_patterns=None, local_cache=False):

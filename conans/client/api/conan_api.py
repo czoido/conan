@@ -121,8 +121,8 @@ class ConanApp(object):
 
 
 class ConanAPIV2(object):
-    def __init__(self, cache_folder=None, user_io=None, http_requester=None, runner=None):
-        self.out = ConanOutput()
+    def __init__(self, cache_folder=None, output=None, user_io=None, http_requester=None, runner=None):
+        self.out = output or ConanOutput()
         self.user_io = user_io or UserIO(out=self.out)
         self.cache_folder = cache_folder or os.path.join(get_conan_user_home(), ".conan")
         self.http_requester = http_requester
@@ -141,6 +141,10 @@ class ConanAPIV2(object):
 
     @api_method
     def user_list(self, remote_name=None):
+        self.out.warn("This is a warning.")
+        self.out.error("This is an error.")
+        self.out.highlight("This is a highlight")
+        self.out.success("This is a success")
         if not remote_name or "*" in remote_name:
             info = {"remote1": {"user": "someuser1"},
                     "remote2": {"user": "someuser2"},
