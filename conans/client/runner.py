@@ -78,6 +78,8 @@ class ConanRunner(object):
             # so both are merged and use just a single get_stream_lines() call
             capture_output = log_handler or not self._log_run_to_output or (
                     stream_output and isinstance(stream_output._stream, six.StringIO))
+            print("------> _pipe_os_call")
+            print(type(stream_output._stream))
             if capture_output:
                 proc = Popen(command, shell=isinstance(command, six.string_types), stdout=PIPE,
                              stderr=STDOUT, cwd=cwd)

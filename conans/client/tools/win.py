@@ -704,4 +704,6 @@ def run_in_windows_bash(conanfile, bashcmd, cwd=None, subsystem=None, msys_mingw
         # https://github.com/conan-io/conan/issues/2839 (subprocess=True)
         with environment_append(normalized_env):
             print("------> MODIFIED CONAN VERSION <---------")
+            print("------> environment_append")
+            print(type(conanfile.output))
             return conanfile._conan_runner(wincmd, output=conanfile.output, subprocess=True)
