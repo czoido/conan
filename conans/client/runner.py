@@ -1,7 +1,7 @@
 import io
 import os
-import subprocess
 import sys
+
 from subprocess import PIPE, Popen, STDOUT
 
 import six
@@ -14,7 +14,7 @@ from conans.util.runners import pyinstaller_bundle_env_cleaned
 
 class _UnbufferedWrite(object):
     def __init__(self, stream):
-        self._stream = stream._stream if hasattr(stream, "_stream") else stream
+        self._stream = stream
 
     def write(self, *args, **kwargs):
         self._stream.write(*args, **kwargs)
@@ -43,7 +43,7 @@ class ConanRunner(object):
                   "use six.StringIO() instead ***")
 
         stream_output = output if output and hasattr(output, "write") else self._output or sys.stdout
-        if hasattr(stream_output, "flush"):
+        if hasattr(output, "flush"):
             # We do not want output from different streams to get mixed (sys.stdout, os.system)
             stream_output = _UnbufferedWrite(stream_output)
 
@@ -76,15 +76,7 @@ class ConanRunner(object):
             # piping both stdout, stderr and then later only reading one will hang the process
             # if the other fills the pip. So piping stdout, and redirecting stderr to stdout,
             # so both are merged and use just a single get_stream_lines() call
-            # capture_output = log_handler or not self._log_run_to_output or (
-            #         stream_output and isinstance(stream_output._stream, six.StringIO))
-            capture_output = True
-            if capture_output:
-                proc = Popen(command, shell=isinstance(command, six.string_types), stdout=PIPE,
-                             stderr=STDOUT, cwd=cwd)
-            else:
-                proc = Popen(command, shell=isinstance(command, six.string_types), cwd=cwd)
-
+            proc = Popen(command, shell=isinstance(command, six.string_types), stdout=PIPE, stderr=STDOUT, cwd=cwd)
         except Exception as e:
             raise ConanException("Error while executing '%s'\n\t%s" % (command, str(e)))
 
@@ -107,8 +99,8 @@ class ConanRunner(object):
                     # tried to open the log_handler binary but same result.
                     log_handler.write(line if six.PY2 else decoded_line)
 
-        if capture_output:
-            get_stream_lines(proc.stdout)
+        get_stream_lines(proc.stdout)
+        # get_stream_lines(proc.stderr)
 
         proc.communicate()
         ret = proc.returncode
