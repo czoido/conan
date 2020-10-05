@@ -37,6 +37,7 @@ class ConanRunner(object):
         @param log_filepath: If specified, also log to a file
         @param cwd: Move to directory to execute
         """
+        print("-------> {}#{}#{}".format(command, output, subprocess))
         if output and isinstance(output, io.StringIO) and six.PY2:
             # in py2 writing to a StringIO requires unicode, otherwise it fails
             print("*** WARN: Invalid output parameter of type io.StringIO(), "
