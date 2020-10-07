@@ -197,7 +197,7 @@ class InfoFoldersTest(unittest.TestCase):
         cmd = r'cacls %s /E /R "%s\%s"' % (short_folder, current_domain, current_user)
         try:
             import sys
-            out = subprocess.check_output(cmd, stderr=sys.STDOUT)
+            out = subprocess.check_output(cmd, stderr=sys.stdout)
             print(out)
         except subprocess.CalledProcessError as e:
             print(out)
