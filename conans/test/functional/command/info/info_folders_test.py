@@ -190,12 +190,16 @@ class InfoFoldersTest(unittest.TestCase):
 
         current_domain = os.environ['USERDOMAIN']
         current_user = os.environ['USERNAME']
+        print(current_domain)
+        print(current_user)
 
         # Explicitly revoke full control permission to current user
         cmd = r'cacls %s /E /R "%s\%s"' % (short_folder, current_domain, current_user)
         try:
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            print(out)
         except subprocess.CalledProcessError as e:
+            print(out)
             raise Exception("Error %s setting ACL to short_folder: '%s'."
                             "Please check that cacls.exe exists" % (e, short_folder))
 
