@@ -40,7 +40,8 @@ class ConanLib(ConanFile):
 
 
 class PathLengthLimitTest(unittest.TestCase):
-    @unittest.skipUnless(platform.system() == "Windows", "requires Win")
+    #@unittest.skipUnless(platform.system() == "Windows", "requires Win")
+    @unittest.skip("NEWCI")
     def failure_copy_test(self):
         client = TestClient()
         conanfile = dedent("""
