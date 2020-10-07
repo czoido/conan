@@ -196,8 +196,7 @@ class InfoFoldersTest(unittest.TestCase):
         # Explicitly revoke full control permission to current user
         cmd = r'cacls %s /E /R "%s\%s"' % (short_folder, current_domain, current_user)
         try:
-            import sys
-            out = subprocess.check_output(cmd, stderr=sys.stdout)
+            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             print(out)
         except subprocess.CalledProcessError as e:
             print(out)
