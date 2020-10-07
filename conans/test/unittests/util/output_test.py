@@ -62,6 +62,7 @@ class PkgConan(ConanFile):
         content = load(os.path.join(output_dir, "example.txt"))
         self.assertEqual(content, "Hello world!")
 
+    @unittest.skip("NEWCI")
     def short_paths_unzip_output_test(self):
         if platform.system() != "Windows":
             return
