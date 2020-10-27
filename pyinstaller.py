@@ -23,6 +23,7 @@ def _run_bin(pyinstaller_path):
     conan_bin = os.path.join(pyinstaller_path, 'dist', 'conan', 'conan')
     if platform.system() == 'Windows':
         conan_bin = '"' + conan_bin + '.exe' + '"'
+    print("_run_bin: {}".format(conan_bin))
     retcode = os.system(conan_bin)
     if retcode != 0:
         raise Exception("Binary not working")
