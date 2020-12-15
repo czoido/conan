@@ -299,12 +299,12 @@ class HelloConan(ConanFile):
         settings.compiler.version = "14"
 
         # test build_type and arch override, for multi-config packages
-        with warnings.catch_warnings(record=True) as w:
+        with pytest.warns(DeprecationWarning) as record:
             warnings.simplefilter("always")
             cmd = tools.msvc_build_command(settings, "project.sln", build_type="Debug",
                                            arch="x86", output=self.output)
-            self.assertEqual(len(w), 3)
-            self.assertTrue(issubclass(w[0].category, DeprecationWarning))
+        assert len(record) == 3
+        assert issubclass(record[0].category, DeprecationWarning)
         self.assertIn('msbuild "project.sln" /p:Configuration="Debug" '
                       '/p:UseEnv=false /p:Platform="x86"', cmd)
         self.assertIn('vcvarsall.bat', cmd)
