@@ -1,6 +1,5 @@
 import json
 import os
-import random
 import shlex
 import shutil
 import sys
@@ -877,6 +876,14 @@ class TurboTestClient(TestClient):
         return rev
 
 
+def get_free_port():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind(('localhost', 0))
+    ret = sock.getsockname()[1]
+    sock.close()
+    return ret
+
+
 class StoppableThreadBottle(threading.Thread):
     """
     Real server to test download endpoints
@@ -884,10 +891,7 @@ class StoppableThreadBottle(threading.Thread):
 
     def __init__(self, host=None, port=None):
         self.host = host or "127.0.0.1"
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind(('localhost', 0))
-        self.port = port or sock.getsockname()[1]
-        sock.close()
+        self.port = port or get_free_port()
         self.server = bottle.Bottle()
         super(StoppableThreadBottle, self).__init__(target=self.server.run,
                                                     kwargs={"host": self.host, "port": self.port})
