@@ -1,3 +1,9 @@
 @Library('conan_ci@use_pytest') _
 
-conanCI.runBuild(this)
+properties([
+    parameters([
+        string(name: "test_module", defaultValue: "\"conans/test\"")
+    ]),
+]) 
+
+conanCI.runBuild(this, params.test_module)
