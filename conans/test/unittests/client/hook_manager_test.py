@@ -88,7 +88,6 @@ class HookManagerTest(unittest.TestCase):
             hook_manager.execute(method)
             self.assertIn("[HOOK - my_hook.py] %s(): %s()" % (method, method), output)
 
-    #@pytest.mark.skipif(sys.version_info < (2, 7, 17), reason="Skip until CI docker is updated")
     def test_no_error_with_no_method(self):
         hook_manager, output, hook_path = self._init()
         other_hook = """
@@ -100,7 +99,6 @@ def my_custom_function():
         hook_manager.execute("pre_source")
         self.assertEqual("", output)
 
-    #@pytest.mark.skipif(sys.version_info < (2, 7, 17), reason="Skip until CI docker is updated")
     def test_exception_in_method(self):
         hook_manager, output, hook_path = self._init()
         my_hook = """
