@@ -2,6 +2,7 @@ import json
 import os
 import shlex
 import shutil
+import socket
 import sys
 import textwrap
 import threading
@@ -891,8 +892,8 @@ class StoppableThreadBottle(threading.Thread):
 
     def __init__(self, host=None, port=None):
         self.host = host or "127.0.0.1"
-        self.port = port or get_free_port()
         self.server = bottle.Bottle()
+        self.port = port or get_free_port()
         super(StoppableThreadBottle, self).__init__(target=self.server.run,
                                                     kwargs={"host": self.host, "port": self.port})
         self.daemon = True
