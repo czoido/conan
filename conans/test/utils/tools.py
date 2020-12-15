@@ -886,9 +886,8 @@ class StoppableThreadBottle(threading.Thread):
         self.host = host or "127.0.0.1"
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(('localhost', 0))
-        port = sock.getsockname()[1]
+        self.port = port or sock.getsockname()[1]
         sock.close()
-        self.port = port or random.randrange(48000, 49151)
         self.server = bottle.Bottle()
         super(StoppableThreadBottle, self).__init__(target=self.server.run,
                                                     kwargs={"host": self.host, "port": self.port})
