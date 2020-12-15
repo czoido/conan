@@ -8,7 +8,6 @@ import textwrap
 import threading
 import time
 import uuid
-import socket
 from collections import OrderedDict
 from contextlib import contextmanager
 
