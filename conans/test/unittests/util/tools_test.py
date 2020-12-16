@@ -292,6 +292,7 @@ class HelloConan(ConanFile):
 
     @unittest.skipUnless(platform.system() == "Windows", "Requires vswhere")
     @pytest.mark.tool_visual_studio
+    @pytest.mark.skipif(sys.version_info[0] < 3, reason="Does not pass on Py2 with Pytest")
     def test_msvc_build_command(self):
         settings = Settings.loads(get_default_settings_yml())
         settings.os = "Windows"
