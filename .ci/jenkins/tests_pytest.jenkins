@@ -2,8 +2,9 @@
 
 properties([
     parameters([
-        string(name: "test_module", defaultValue: "\"conans/test\"")
+        string(name: "test_module", defaultValue: "\"conans/test\""),
+        string(name: "node_name", defaultValue: "")
     ]),
 ]) 
 
-conanCI.runBuild(this, params.test_module)
+conanCI.runBuild(this, params.test_module, params.node_name)
