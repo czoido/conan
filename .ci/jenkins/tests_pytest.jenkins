@@ -1,3 +1,3 @@
-@Library('conan_ci@use_pytest') _
+@Library('conan_ci@leave-xunit') _
 
 conanCI.runBuild(this)
