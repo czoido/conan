@@ -299,7 +299,7 @@ class HelloConan(ConanFile):
         settings.compiler.version = "14"
 
         # test build_type and arch override, for multi-config packages
-        with pytest.warns(DeprecationWarning) as record:
+        with pytest.warns(None) as record:
             warnings.simplefilter("always")
             cmd = tools.msvc_build_command(settings, "project.sln", build_type="Debug",
                                            arch="x86", output=self.output)
