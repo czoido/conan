@@ -10,7 +10,7 @@ from conans.client.output import ConanOutput
 from conans.client.tools import environment_append
 from conans.model.package_metadata import PackageMetadata
 from conans.model.ref import ConanFileReference, PackageReference
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.util.files import mkdir
 from conans.util.files import save
 

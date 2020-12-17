@@ -8,7 +8,7 @@ import six
 from conans.client.profile_loader import read_profile
 from conans.errors import ConanV2Exception
 from conans.test.utils.conan_v2_tests import ConanV2ModeTestCase
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.util.files import save
 
 

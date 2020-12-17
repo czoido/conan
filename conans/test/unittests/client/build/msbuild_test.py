@@ -14,7 +14,7 @@ from conans.client.build.msbuild import MSBuild
 from conans.errors import ConanException
 from conans.model.version import Version
 from conans.test.utils.mocks import MockSettings, MockConanfile, ConanFileMock
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 
 
 class MSBuildTest(unittest.TestCase):

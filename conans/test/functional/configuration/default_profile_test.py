@@ -4,7 +4,7 @@ import unittest
 from conans.client import tools
 from conans.client.cache.cache import PROFILES_FOLDER
 from conans.paths import CONANFILE
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import NO_SETTINGS_PACKAGE_ID, TestClient
 from conans.util.files import save
 

@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 
 from conans.util.windows import hashed_redirect
 

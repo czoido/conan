@@ -7,7 +7,7 @@ from parameterized.parameterized import parameterized
 from conans.model.manifest import FileTreeManifest
 from conans.model.ref import ConanFileReference, PackageReference
 from conans.paths import EXPORT_SOURCES_TGZ_NAME, EXPORT_SRC_FOLDER, EXPORT_TGZ_NAME
-from conans.test.utils.test_files import scan_folder
+from conans.test.utils.test_utils_files import scan_folder
 from conans.test.utils.tools import NO_SETTINGS_PACKAGE_ID, TestClient, TestServer
 from conans.util.files import load, md5sum, save
 

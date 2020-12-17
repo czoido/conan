@@ -5,7 +5,7 @@ from conans.client.generators.cmake_paths import CMakePathsGenerator
 from conans.model.build_info import CppInfo
 from conans.model.conan_file import ConanFile
 from conans.model.env_info import EnvValues
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.mocks import TestBufferConanOutput
 from conans.errors import ConanException
 

@@ -11,7 +11,7 @@ from conans.model.graph_info import GraphInfo
 from conans.model.options import OptionsValues
 from conans.model.ref import ConanFileReference
 from conans.test.functional.graph.graph_manager_base import GraphManagerTest
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.util.files import save
 
 

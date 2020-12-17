@@ -8,7 +8,7 @@ import six
 
 from conans.client import tools
 from conans.client.output import ConanOutput
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import TestClient
 from conans.util.files import load, save
 

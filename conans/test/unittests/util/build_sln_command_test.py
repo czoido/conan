@@ -16,7 +16,7 @@ from conans.client.tools.win import build_sln_command
 from conans.errors import ConanException
 from conans.model.settings import Settings
 from conans.test.utils.mocks import MockSettings
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.util.files import load, save
 
 

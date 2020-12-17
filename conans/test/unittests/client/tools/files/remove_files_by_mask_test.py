@@ -4,7 +4,7 @@ import unittest
 # Check it is importable from tools
 from conans.tools import remove_files_by_mask
 from conans.client.tools.files import chdir
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.util.files import save_files
 
 

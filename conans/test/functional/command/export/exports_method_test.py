@@ -3,7 +3,7 @@ import textwrap
 import unittest
 
 from conans.model.ref import ConanFileReference
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import TestClient
 from conans.util.files import save_files, load
 

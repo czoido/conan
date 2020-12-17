@@ -10,7 +10,7 @@ from conans.model.env_info import EnvValues
 from conans.model.profile import Profile
 from conans.model.ref import ConanFileReference
 from conans.test.utils.profiles import create_profile as _create_profile
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.util.files import load, save
 
 

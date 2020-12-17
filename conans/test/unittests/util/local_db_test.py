@@ -5,7 +5,7 @@ import uuid
 import six
 
 from conans.client.store.localdb import LocalDB
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 
 
 class LocalStoreTest(unittest.TestCase):

@@ -10,7 +10,7 @@ from parameterized import parameterized
 from conans.model.editable_layout import DEFAULT_LAYOUT_FILE, LAYOUTS_FOLDER
 from conans.test.utils.tools import TestClient
 from conans.util.files import save
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 
 
 class HeaderOnlyLibTestClient(TestClient):

@@ -6,7 +6,7 @@ import platform
 
 from conans.migrations import Migrator
 from conans.test.utils.mocks import TestBufferConanOutput
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.errors import ConanMigrationError
 
 

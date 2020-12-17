@@ -8,7 +8,7 @@ from bottle import static_file
 from nose.plugins.attrib import attr
 
 from conans.model.ref import ConanFileReference
-from conans.test.utils.test_files import tgz_with_contents
+from conans.test.utils.test_utils_files import tgz_with_contents
 from conans.test.utils.tools import TestClient, StoppableThreadBottle
 from conans.util.files import md5sum, sha1sum, sha256sum, load
 

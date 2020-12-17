@@ -7,7 +7,7 @@ from conans.model.info import ConanInfo
 from conans.model.ref import ConanFileReference
 from conans.paths import (BUILD_FOLDER, CONANINFO, EXPORT_FOLDER, PACKAGES_FOLDER)
 from conans.search.search import search_packages, search_recipes
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.mocks import TestBufferConanOutput
 from conans.util.files import save, mkdir
 

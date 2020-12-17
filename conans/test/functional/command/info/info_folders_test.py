@@ -8,7 +8,7 @@ import unittest
 from conans.client import tools
 from conans.model.ref import ConanFileReference, PackageReference
 from conans.paths import CONANFILE
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import NO_SETTINGS_PACKAGE_ID, TestClient, TestServer
 from conans.util.runners import check_output_runner
 

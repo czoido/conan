@@ -4,7 +4,7 @@ import textwrap
 import unittest
 
 from conans.build_info.build_info import update_build_info
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.tools import save
 
 

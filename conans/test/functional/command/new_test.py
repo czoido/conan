@@ -5,7 +5,7 @@ import unittest
 from parameterized import parameterized
 
 from conans import __version__ as client_version
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import TestClient
 from conans.tools import save
 from conans.util.files import load

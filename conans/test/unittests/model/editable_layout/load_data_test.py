@@ -9,7 +9,7 @@ import six
 
 from conans.errors import ConanException
 from conans.model.editable_layout import EditableLayout
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.util.files import save
 
 

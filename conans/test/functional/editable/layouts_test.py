@@ -7,7 +7,7 @@ import unittest
 
 from conans.model.editable_layout import LAYOUTS_FOLDER
 from conans.model.ref import ConanFileReference
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import TestClient, GenConanfile
 from conans.util.files import save_files, save
 

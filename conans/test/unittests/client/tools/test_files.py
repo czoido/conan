@@ -5,7 +5,7 @@ import unittest
 
 from conans.client.tools.files import save, chdir
 from conans.client.tools import apple_dot_clean
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 
 
 class DotCleanTest(unittest.TestCase):

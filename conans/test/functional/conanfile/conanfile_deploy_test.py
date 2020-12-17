@@ -4,7 +4,7 @@ import unittest
 from parameterized.parameterized import parameterized
 
 from conans.model.manifest import FileTreeManifest
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import TestClient
 from conans.util.files import load, mkdir
 

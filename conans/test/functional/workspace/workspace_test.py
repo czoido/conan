@@ -12,7 +12,7 @@ from parameterized.parameterized import parameterized
 from conans.client import tools
 from conans.errors import ConanException
 from conans.model.workspace import Workspace
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import TestClient, GenConanfile
 from conans.util.files import load, save
 

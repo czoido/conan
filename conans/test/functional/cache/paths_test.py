@@ -11,7 +11,7 @@ from conans.client.cache.cache import ClientCache
 from conans.client.tools.env import environment_append
 from conans.model.ref import ConanFileReference, PackageReference
 from conans.paths import BUILD_FOLDER, EXPORT_FOLDER, PACKAGES_FOLDER, conan_expand_user
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.mocks import TestBufferConanOutput
 from conans.util.windows import path_shortener
 

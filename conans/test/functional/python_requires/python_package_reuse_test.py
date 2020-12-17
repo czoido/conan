@@ -3,7 +3,7 @@ import unittest
 
 from conans.model.info import ConanInfo
 from conans.paths import BUILD_INFO, CONANFILE
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import TestClient, TestServer
 from conans.util.files import save
 

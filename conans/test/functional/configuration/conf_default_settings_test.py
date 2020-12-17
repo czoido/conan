@@ -7,7 +7,7 @@ from conans.client import tools
 from conans.client.cache.cache import ClientCache
 from conans.client.conf.detect import detect_defaults_settings
 from conans.paths import CONANFILE_TXT
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import TestClient
 from conans.util.files import save
 

@@ -14,7 +14,7 @@ from conans.client.tools.version import Version
 from conans.migrations import CONAN_VERSION
 from conans.model.ref import ConanFileReference, PackageReference
 from conans.paths import EXPORT_TGZ_NAME, EXPORT_SOURCES_TGZ_NAME, PACKAGE_TGZ_NAME
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import TestClient, GenConanfile, NO_SETTINGS_PACKAGE_ID
 from conans.util.files import load, save
 from conans.client import migrations_settings

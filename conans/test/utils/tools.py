@@ -44,7 +44,7 @@ from conans.test.utils.scm import create_local_git_repo, create_local_svn_checko
 from conans.test.utils.server_launcher import (TESTING_REMOTE_PRIVATE_PASS,
                                                TESTING_REMOTE_PRIVATE_USER,
                                                TestServerLauncher)
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.util.conan_v2_mode import CONAN_V2_MODE_ENVVAR
 from conans.util.env_reader import get_env
 from conans.util.files import mkdir, save_files

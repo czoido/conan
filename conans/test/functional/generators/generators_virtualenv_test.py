@@ -15,7 +15,7 @@ from conans.client.tools.env import environment_append
 from conans.model.ref import ConanFileReference
 from conans.test.functional.graph.graph_manager_base import GraphManagerTest
 from conans.test.utils.mocks import ConanFileMock
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import GenConanfile
 from conans.util.files import decode_text, load, save_files, to_file_bytes
 

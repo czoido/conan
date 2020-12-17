@@ -7,7 +7,7 @@ import unittest
 from conans import load
 from conans.model.ref import ConanFileReference, PackageReference
 from conans.util.files import save
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import GenConanfile, TurboTestClient, NO_SETTINGS_PACKAGE_ID
 
 

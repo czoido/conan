@@ -9,7 +9,7 @@ from parameterized.parameterized import parameterized_class
 
 from conans.client.tools import environment_append, save
 from conans.test.utils.deprecation import catch_deprecation_warning
-from conans.test.utils.test_files import temp_folder
+from conans.test.utils.test_utils_files import temp_folder
 from conans.test.utils.tools import TestClient
 
 
