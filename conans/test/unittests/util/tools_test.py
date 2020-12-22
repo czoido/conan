@@ -293,6 +293,7 @@ class HelloConan(ConanFile):
 
     @unittest.skipUnless(platform.system() == "Windows", "Requires vswhere")
     @pytest.mark.tool_visual_studio
+    @unittest.skipIf(six.PY2, "Does not pass on Py2 with Pytest")
     def test_msvc_build_command(self):
         settings = Settings.loads(get_default_settings_yml())
         settings.os = "Windows"
@@ -839,6 +840,7 @@ class HelloConan(ConanFile):
             self.assertIn(payload, str(output))
 
     @pytest.mark.tool_file  # Needs the "file" command, not by default in linux
+    @unittest.skipIf(which("file") is None, "Needs the 'file' command, not by default in linux")
     def test_unix_to_dos_unit(self):
 
         def save_file(contents):
