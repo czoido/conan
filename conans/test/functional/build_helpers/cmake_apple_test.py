@@ -8,7 +8,7 @@ from conans.model.settings import Settings
 from conans.test.utils.mocks import MockSettings, ConanFileMock
 
 
-@unittest.skipUnless(platform.system() == "Darwin", "Only for MacOS")
+@pytest.mark.skipif(platform.system() != "Darwin", reason="Only for MacOS")
 class CMakeAppleTest(unittest.TestCase):
     @parameterized.expand([('x86', 'Macos', 'i386', 'MacOSX.platform'),
                            ('x86_64', 'Macos', 'x86_64', 'MacOSX.platform'),

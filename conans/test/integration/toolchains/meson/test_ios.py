@@ -14,8 +14,8 @@ from conans.test.utils.tools import TestClient
 
 @pytest.mark.toolchain
 @pytest.mark.tool_meson
-@unittest.skipUnless(platform.system() == "Darwin", "requires Xcode")
-@unittest.skipUnless(get_meson_version() >= "0.56.0", "requires meson >= 0.56.0")
+@pytest.mark.skipif(platform.system() != "Darwin", reason="requires Xcode")
+@pytest.mark.skipif(get_meson_version() < "0.56.0", "requires meson >= 0.56.0")
 class IOSMesonTestCase(unittest.TestCase):
 
     _conanfile_py = textwrap.dedent("""

@@ -13,7 +13,7 @@ from conans.test.utils.test_files import temp_folder
 from conans.test.utils.tools import NO_SETTINGS_PACKAGE_ID, TestClient
 
 
-@unittest.skipUnless(platform.system() == "Windows", "Requires Windows")
+@pytest.mark.skipif(platform.system() != "Windows", reason="Requires Windows")
 class ShortPathsTest(unittest.TestCase):
 
     def test_inconsistent_cache(self):

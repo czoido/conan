@@ -8,6 +8,7 @@ import tempfile
 import unittest
 import uuid
 
+import pytest
 import six
 
 from conans.client.cmd.export import _replace_scm_data_in_conanfile
@@ -70,7 +71,7 @@ class LibConan(ConanFile):
         _replace_scm_data_in_conanfile(conanfile, self.scm_data)
         self._check_result(conanfile)
 
-    @unittest.skipUnless(six.PY3, "Works only in Py3 (assumes utf-8 for source files)")
+    @pytest.mark.skipif(not six.PY3, reason="Works only in Py3 (assumes utf-8 for source files)")
     def test_author_non_ascii(self):
         conanfile = self._get_conanfile(author=six.u("¡ÑÁí!"), encoding='utf-8')
         _replace_scm_data_in_conanfile(conanfile, self.scm_data)

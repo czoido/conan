@@ -13,7 +13,7 @@ from conans.test.utils.tools import TestClient
 
 @pytest.mark.toolchain
 @pytest.mark.tool_meson
-@unittest.skipUnless(get_meson_version() >= "0.56.0", "requires meson >= 0.56.0")
+@pytest.mark.skipif(get_meson_version() < "0.56.0", "requires meson >= 0.56.0")
 class AndroidToolchainMesonTestCase(unittest.TestCase):
 
     _conanfile_py = textwrap.dedent("""

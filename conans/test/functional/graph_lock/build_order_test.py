@@ -209,7 +209,7 @@ class BuildOrderTest(unittest.TestCase):
         jsonbo = json.loads(client.load("bo.json"))
         self.assertEqual([], jsonbo)
 
-    @unittest.skipUnless(get_env("TESTING_REVISIONS_ENABLED", False), "Only revisions")
+    @pytest.mark.skipif(get_env("TESTING_REVISIONS_ENABLED", False) == False, reason="Only revisions")
     def test_package_revision_mode_build_order(self):
         # https://github.com/conan-io/conan/issues/6232
         client = TestClient()

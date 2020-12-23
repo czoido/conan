@@ -15,7 +15,7 @@ from conans.util.files import load, save
 
 class ConanCreateTest(unittest.TestCase):
 
-    @unittest.skipUnless(platform.system() == "Windows", "only Windows test")
+    @pytest.mark.skipif(platform.system() != "Windows", reason="only Windows test")
     def test_preprocessor_called_second_api_call(self):
         """"When calling twice to conan create with the Conan python API, the default
         settings shouldn't be cached. To test that the default profile is not cached,

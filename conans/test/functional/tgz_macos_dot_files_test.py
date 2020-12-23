@@ -13,7 +13,7 @@ from conans.test.utils.mocks import TestBufferConanOutput
 from conans.test.utils.tools import TestClient, NO_SETTINGS_PACKAGE_ID
 
 
-@unittest.skipUnless(platform.system() == "Darwin", "Requires OSX")
+@pytest.mark.skipif(platform.system() != "Darwin", reason="Requires OSX")
 class TgzMacosDotFilesTest(unittest.TestCase):
 
     def _test_for_metadata_in_zip_file(self, tgz, annotated_file, dot_file_expected):

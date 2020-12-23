@@ -7,7 +7,7 @@ from conans.test.utils.tools import TestClient
 from ._utils import create_library
 
 
-@unittest.skipUnless(platform.system() == "Darwin", "Requires XCode")
+@pytest.mark.skipif(platform.system() != "Darwin", reason="Requires XCode")
 class ToolchainiOSTestCase(unittest.TestCase):
 
     def setUp(self):

@@ -40,7 +40,7 @@ Hello/0.1@lasote/stable
 """
 
 
-@unittest.skipUnless(platform.system() != "Windows", "Requires Symlinks")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Requires Symlinks")
 class SymLinksTest(unittest.TestCase):
 
     def _check(self, client, ref, build=True):
@@ -282,7 +282,7 @@ class ConanSymlink(ConanFile):
         self.assertEqual(os.path.realpath(bf_symlink), os.path.join(bf, "release"))
 
 
-@unittest.skipUnless(platform.system() != "Windows", "Requires Symlinks")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Requires Symlinks")
 class SymlinkExportSources(unittest.TestCase):
     conanfile = textwrap.dedent("""
         from conans import ConanFile, CMake

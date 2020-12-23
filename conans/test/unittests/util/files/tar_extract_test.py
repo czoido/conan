@@ -35,7 +35,7 @@ class TarExtractTest(unittest.TestCase):
                         tgz.addfile(tarinfo=info, fileobj=file_handler)
                 tgz.close()
 
-    @unittest.skipUnless(platform.system() == "Linux", "Requires Linux")
+    @pytest.mark.skipif(platform.system() != "Linux", reason="Requires Linux")
     def test_link_folder(self):
         # If there is a linked folder in the current directory that matches one file in the tar.
         # https://github.com/conan-io/conan/issues/4959
