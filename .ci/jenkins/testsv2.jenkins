@@ -8,6 +8,7 @@ def cancelPrevious() {
 try {
     cancelPrevious()
     node("Linux") {
+        sh(script: "printenv")
         sh(script: "sleep 30 && python --version")
     }
     node("Macos") {
