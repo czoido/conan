@@ -31,56 +31,58 @@ String getDockerImage(String testModule) {
 }
 
 // call to pytest for different nodes
-void runTests(String nodeName, List<String> pyvers, String module) {
-    node("Linux") {
-        def dockerImage = getDockerImage(module)
-        echo "Docker Image: $dockerImage"
-        docker.image(dockerImage).inside("--entrypoint=") {
-            echo "$module, $pyvers"
+void runTests(String stageLabel, String nodeName, List<String> pyvers, String module) {
+    return {
+        node(nodeName) {
+            stage("$stageLabel $nodeName, $pyvers") {
+                if (nodeName=="Linux") {
+                    def dockerImage = getDockerImage(module)
+                    echo "Docker Image: $dockerImage"
+                    docker.image(dockerImage).inside("--entrypoint=") {
+                        echo "$module, $pyvers"
+                    }
+                }
+                else if (nodeName=="Macos") {
+                    echo "$module, $pyvers"
+                }
+                else if (nodeName=="Windows") {
+                    echo "$module, $pyvers"
+                }
+            }
         }
-    }
-    node("Macos") {
-        echo "$module, $pyvers"
-    }
-    node("Windows") {
-        echo "$module, $pyvers"
     }
 }
 
 void runUnitAndIntegrationTests(List<Map> configs) {
     echo "runUnitAndIntegrationTests"
+    def paralellRuns = [:]
     configs.each { config ->
-        def nodeName = config["name"]
-        def pyvers = config["pyvers"]
-        echo "Node name: $nodeName, Python Versions: $pyvers" 
-        runTests(nodeName, pyvers, "conans/test/unittests")
+        paralellRuns[config["name"]] = runTests("Unit and Integration", config["name"], config["pyvers"], "conans/test/unittests")
     }
+    parallel(paralellRuns)
+    paralellRuns = [:]
     configs.each { config ->
-        def nodeName = config["name"]
-        def pyvers = config["pyvers"]
-        echo "Node name: $nodeName, Python Versions: $pyvers" 
-        runTests(nodeName, pyvers, "conans/test/integration")
+        paralellRuns[config["name"]] = runTests("Unit and Integration", config["name"], config["pyvers"], "conans/test/integration")
     }
+    parallel(paralellRuns)
 }
 
 void runFunctionalTestsDefault(List<Map> configs) {
     echo "runFunctionalTestsDefault"
+    def paralellRuns = [:]
     configs.each { config ->
-        def nodeName = config["name"]
-        def pyvers = config["pyvers"]
-        echo "Node name: $nodeName, Python Versions: $pyvers" 
-        runTests(nodeName, pyvers, "conans/test/functional")
+        paralellRuns[config["name"]] = runTests("Functional default versions", config["name"], config["pyvers"], "conans/test/functional")
     }
+    parallel(paralellRuns)
 }
 
 void runFunctionalTestsVariants(List<Map> configs) {
     echo "runFunctionalTestsWithVariants"
+    def paralellRuns = [:]
     configs.each { config ->
-        def nodeName = config["name"]
-        def pyvers = config["pyvers"]
-        echo "Node name: $nodeName, Python Versions: $pyvers" 
-        runTests(nodeName, pyvers, "conans/test/functional")
+        paralellRuns[config["name"]] = runTests("Functional extended versions", config["name"], config["pyvers"], "conans/test/functional")
     }
+    parallel(paralellRuns)
 }
 
 try {
@@ -92,15 +94,9 @@ try {
     def jobName = env.JOB_NAME
     def configs = getConfigurations(branchName, jobName)
 
-    stage("Unit and Integration tests") {
-        runUnitAndIntegrationTests(configs)
-    }
-    stage("Integration reference versions") {
-        runFunctionalTestsDefault(configs)
-    }
-    stage("Integration with different versions") {
-        runFunctionalTestsVariants(configs)
-    }
+    runUnitAndIntegrationTests(configs)
+    runFunctionalTestsDefault(configs)
+    runFunctionalTestsVariants(configs)
 }
 catch(e){
     echo "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'"
