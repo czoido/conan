@@ -1,20 +1,105 @@
 
-def cancelPrevious() {
-    def buildNumber = env.BUILD_NUMBER as int
-    if (buildNumber > 1) milestone(buildNumber - 1)
-    milestone(buildNumber)
+void cancelPrevious() {
+    stage("Cancelling previous") {
+        def buildNumber = env.BUILD_NUMBER as int
+        if (buildNumber > 1) milestone(buildNumber - 1)
+        milestone(buildNumber)
+    }
+}
+
+List<Map> getConfigurations(String branchName, String jobName) {
+    def configs = []
+    if (branchName =~ /(^PR-.*)/) {
+        configs.add([name: "Linux", pyvers: ["py36"]])
+    }
+    else if (branchName =~ /(^release.*)|(^develop2)/ || jobName == "ConanNightly") {
+        configs.add([name: "Linux", pyvers: ["py36", "py38"]])
+        configs.add([name: "Windows", pyvers: ["py36", "py38"]])
+        configs.add([name: "Macos", pyvers: ["py36", "py38"]])
+    }
+    return configs
+}
+
+String getDockerImage(String testModule) {
+    if (testModule.indexOf("unittests")!=-1 || testModule.indexOf("integration")!=-1) {
+        return "conanio/ci-unittests"
+    }
+    else if (testModule.indexOf("functional")!=-1){
+        return "conanio/ci-functional"
+    }
+    return ""
+}
+
+// call to pytest for different nodes
+void runTests(String nodeName, List<String> pyvers, String module) {
+    node("Linux") {
+        def dockerImage = getDockerImage(module)
+        echo "Docker Image: $dockerImage"
+        docker.image(dockerImage).inside("--entrypoint=") {
+            echo "$module, $pyvers"
+        }
+    }
+    node("Macos") {
+        echo "$module, $pyvers"
+    }
+    node("Windows") {
+        echo "$module, $pyvers"
+    }
+}
+
+void runUnitAndIntegrationTests(List<Map> configs) {
+    echo "runUnitAndIntegrationTests"
+    configs.each { config ->
+        def nodeName = config["name"]
+        def pyvers = config["pyvers"]
+        echo "Node name: $nodeName, Python Versions: $pyvers" 
+        runTests(nodeName, pyvers, "conans/test/unittests")
+    }
+    configs.each { config ->
+        def nodeName = config["name"]
+        def pyvers = config["pyvers"]
+        echo "Node name: $nodeName, Python Versions: $pyvers" 
+        runTests(nodeName, pyvers, "conans/test/integration")
+    }
+}
+
+void runFunctionalTestsDefault(List<Map> configs) {
+    echo "runFunctionalTestsDefault"
+    configs.each { config ->
+        def nodeName = config["name"]
+        def pyvers = config["pyvers"]
+        echo "Node name: $nodeName, Python Versions: $pyvers" 
+        runTests(nodeName, pyvers, "conans/test/functional")
+    }
+}
+
+void runFunctionalTestsVariants(List<Map> configs) {
+    echo "runFunctionalTestsWithVariants"
+    configs.each { config ->
+        def nodeName = config["name"]
+        def pyvers = config["pyvers"]
+        echo "Node name: $nodeName, Python Versions: $pyvers" 
+        runTests(nodeName, pyvers, "conans/test/functional")
+    }
 }
 
 try {
-    cancelPrevious()
     node("Linux") {
-        sh(script: "sleep 30 && python --version")
+        sh(script: "printenv")
     }
-    node("Macos") {
-        sh(script: "python --version")
+    cancelPrevious()
+    def branchName = env.BRANCH_NAME
+    def jobName = env.JOB_NAME
+    def configs = getConfigurations(branchName, jobName)
+
+    stage("Unit and Integration tests") {
+        runUnitAndIntegrationTests(configs)
     }
-    node("Windows") {
-        bat(script: "python --version")
+    stage("Integration reference versions") {
+        runFunctionalTestsDefault(configs)
+    }
+    stage("Integration with different versions") {
+        runFunctionalTestsVariants(configs)
     }
 }
 catch(e){
