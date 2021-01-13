@@ -34,7 +34,7 @@ String getDockerImage(String testModule) {
 private Closure runTests(String nodeName, List<String> pyvers, String module) {
     def ret = {
         node(nodeName) {
-            stage() {
+            stage("${nodeName} - ${pyvers}") {
                 if (nodeName=="Linux") {
                     try {
                         def dockerImage = getDockerImage(module)
