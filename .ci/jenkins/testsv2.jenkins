@@ -98,6 +98,7 @@ void runFunctionalTestsVariants(List<Map> configs) {
 try {
     node("Linux") {
         sh(script: "printenv")
+        sh(script: "pwd")
     }
     cancelPrevious()
     def branchName = env.BRANCH_NAME
