@@ -31,10 +31,10 @@ String getDockerImage(String testModule) {
 }
 
 // call to pytest for different nodes
-void runTests(String stageLabel, String nodeName, List<String> pyvers, String module) {
+private Closure runTests(String stageLabel, String nodeName, List<String> pyvers, String module) {
     return {
         node(nodeName) {
-            stage("$stageLabel $nodeName, $pyvers") {
+            stage(stageLabel) {
                 if (nodeName=="Linux") {
                     def dockerImage = getDockerImage(module)
                     echo "Docker Image: $dockerImage"
@@ -57,12 +57,12 @@ void runUnitAndIntegrationTests(List<Map> configs) {
     echo "runUnitAndIntegrationTests"
     def paralellRuns = [:]
     configs.each { config ->
-        paralellRuns[config["name"]] = runTests("Unit and Integration", config["name"], config["pyvers"], "conans/test/unittests")
+        paralellRuns[config["name"]] = runTests("Unit", config["name"], config["pyvers"], "conans/test/unittests")
     }
     parallel(paralellRuns)
     paralellRuns = [:]
     configs.each { config ->
-        paralellRuns[config["name"]] = runTests("Unit and Integration", config["name"], config["pyvers"], "conans/test/integration")
+        paralellRuns[config["name"]] = runTests("Integration", config["name"], config["pyvers"], "conans/test/integration")
     }
     parallel(paralellRuns)
 }
@@ -71,7 +71,7 @@ void runFunctionalTestsDefault(List<Map> configs) {
     echo "runFunctionalTestsDefault"
     def paralellRuns = [:]
     configs.each { config ->
-        paralellRuns[config["name"]] = runTests("Functional default versions", config["name"], config["pyvers"], "conans/test/functional")
+        paralellRuns[config["name"]] = runTests("Functional", config["name"], config["pyvers"], "conans/test/functional")
     }
     parallel(paralellRuns)
 }
@@ -80,7 +80,7 @@ void runFunctionalTestsVariants(List<Map> configs) {
     echo "runFunctionalTestsWithVariants"
     def paralellRuns = [:]
     configs.each { config ->
-        paralellRuns[config["name"]] = runTests("Functional extended versions", config["name"], config["pyvers"], "conans/test/functional")
+        paralellRuns[config["name"]] = runTests("Functional", config["name"], config["pyvers"], "conans/test/functional")
     }
     parallel(paralellRuns)
 }
