@@ -31,38 +31,48 @@ String getDockerImage(String testModule) {
 }
 
 // call to pytest for different nodes
-private Closure runTests(String stageLabel, String nodeName, List<String> pyvers, String module) {
-    return {
+private Closure runTests(String nodeName, List<String> pyvers, String module) {
+    def ret = {
         node(nodeName) {
-            stage(stageLabel) {
+            stage() {
                 if (nodeName=="Linux") {
-                    def dockerImage = getDockerImage(module)
-                    echo "Docker Image: $dockerImage"
-                    docker.image(dockerImage).inside("--entrypoint=") {
-                        echo "$module, $pyvers"
+                    try {
+                        def dockerImage = getDockerImage(module)
+                        echo "Docker Image: $dockerImage"
+                        docker.image(dockerImage).inside("--entrypoint=") {
+                            echo "$module, $pyvers"
+                        }
                     }
+                    finally {}
                 }
                 else if (nodeName=="Macos") {
-                    echo "$module, $pyvers"
+                    try {
+                        echo "$module, $pyvers"
+                    }
+                    finally {}
                 }
                 else if (nodeName=="Windows") {
-                    echo "$module, $pyvers"
+                    try {
+                        echo "$module, $pyvers"
+                    }
+                    finally {}
                 }
             }
         }
     }
+    return ret
 }
 
 void runUnitAndIntegrationTests(List<Map> configs) {
     echo "runUnitAndIntegrationTests"
     def paralellRuns = [:]
     configs.each { config ->
-        paralellRuns[config["name"]] = runTests("Unit", config["name"], config["pyvers"], "conans/test/unittests")
+        paralellRuns["Unit - ${config['name']}"] = runTests(config["name"], config["pyvers"], "conans/test/unittests")
     }
     parallel(paralellRuns)
     paralellRuns = [:]
     configs.each { config ->
-        paralellRuns[config["name"]] = runTests("Integration", config["name"], config["pyvers"], "conans/test/integration")
+        paralellRuns["Integration - ${config['name']}"] = runTests(config["name"], config["pyvers"], "conans/test/integration")
     }
     parallel(paralellRuns)
 }
@@ -71,7 +81,7 @@ void runFunctionalTestsDefault(List<Map> configs) {
     echo "runFunctionalTestsDefault"
     def paralellRuns = [:]
     configs.each { config ->
-        paralellRuns[config["name"]] = runTests("Functional", config["name"], config["pyvers"], "conans/test/functional")
+        paralellRuns["Functional - ${config['name']}"] = runTests(config["name"], config["pyvers"], "conans/test/functional")
     }
     parallel(paralellRuns)
 }
@@ -80,7 +90,7 @@ void runFunctionalTestsVariants(List<Map> configs) {
     echo "runFunctionalTestsWithVariants"
     def paralellRuns = [:]
     configs.each { config ->
-        paralellRuns[config["name"]] = runTests("Functional", config["name"], config["pyvers"], "conans/test/functional")
+        paralellRuns["Functional - ${config['name']}"] = runTests(config["name"], config["pyvers"], "conans/test/functional")
     }
     parallel(paralellRuns)
 }
