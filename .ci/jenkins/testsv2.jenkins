@@ -31,29 +31,29 @@ String getDockerImage(String testModule) {
 }
 
 // call to pytest for different nodes
-private Closure runTests(String nodeName, List<String> pyvers, String module) {
+private Closure runTests(String nodeName, String pythonVersion, String module) {
     def ret = {
         node(nodeName) {
-            stage("${nodeName} - ${pyvers}") {
+            stage("${nodeName} - ${pythonVersion}") {
                 if (nodeName=="Linux") {
                     try {
                         def dockerImage = getDockerImage(module)
                         echo "Docker Image: $dockerImage"
                         docker.image(dockerImage).inside("--entrypoint=") {
-                            echo "$module, $pyvers"
+                            echo "$module, $pythonVersion"
                         }
                     }
                     finally {}
                 }
                 else if (nodeName=="Macos") {
                     try {
-                        echo "$module, $pyvers"
+                        echo "$module, $pythonVersion"
                     }
                     finally {}
                 }
                 else if (nodeName=="Windows") {
                     try {
-                        echo "$module, $pyvers"
+                        echo "$module, $pythonVersion"
                     }
                     finally {}
                 }
@@ -63,11 +63,14 @@ private Closure runTests(String nodeName, List<String> pyvers, String module) {
     return ret
 }
 
-void runTestsModule(String moduleName, String branchName, String jobNames) {
+void runTestsModule(String moduleName, String branchName, String jobName) {
     def configs = getConfigurations(moduleName, branchName, jobName)
     def paralellRuns = [:]
     configs.each { config ->
-        paralellRuns["Unit - ${config['node']}"] = runTests(config["node"], config["pyvers"], moduleName)
+        def testKind = moduleName.split("/").last()
+        config["pyvers"].each { pyver ->
+            paralellRuns["${testKind} - ${config['node']} - ${pyver}"] = runTests(config["node"], pyver, moduleName)
+        }
     }
     parallel(paralellRuns)
 }
