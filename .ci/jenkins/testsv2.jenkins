@@ -7,15 +7,15 @@ void cancelPrevious() {
     }
 }
 
-List<Map> getConfigurations(String branchName, String jobName) {
+List<Map> getConfigurations(String moduleName, String branchName, String jobName) {
     def configs = []
     if (branchName =~ /(^PR-.*)/) {
-        configs.add([name: "Linux", pyvers: ["py36"]])
+        configs.add([node: "Linux", pyvers: ["py36"]])
     }
     else if (branchName =~ /(^release.*)|(^develop2)/ || jobName == "ConanNightly") {
-        configs.add([name: "Linux", pyvers: ["py36", "py38"]])
-        configs.add([name: "Windows", pyvers: ["py36", "py38"]])
-        configs.add([name: "Macos", pyvers: ["py36", "py38"]])
+        configs.add([node: "Linux", pyvers: ["py36", "py38"]])
+        configs.add([node: "Windows", pyvers: ["py36", "py38"]])
+        configs.add([node: "Macos", pyvers: ["py36", "py38"]])
     }
     return configs
 }
@@ -63,34 +63,11 @@ private Closure runTests(String nodeName, List<String> pyvers, String module) {
     return ret
 }
 
-void runUnitAndIntegrationTests(List<Map> configs) {
-    echo "runUnitAndIntegrationTests"
+void runTestsModule(String moduleName, String branchName, String jobNames) {
+    def configs = getConfigurations(moduleName, branchName, jobName)
     def paralellRuns = [:]
     configs.each { config ->
-        paralellRuns["Unit - ${config['name']}"] = runTests(config["name"], config["pyvers"], "conans/test/unittests")
-    }
-    parallel(paralellRuns)
-    paralellRuns = [:]
-    configs.each { config ->
-        paralellRuns["Integration - ${config['name']}"] = runTests(config["name"], config["pyvers"], "conans/test/integration")
-    }
-    parallel(paralellRuns)
-}
-
-void runFunctionalTestsDefault(List<Map> configs) {
-    echo "runFunctionalTestsDefault"
-    def paralellRuns = [:]
-    configs.each { config ->
-        paralellRuns["Functional - ${config['name']}"] = runTests(config["name"], config["pyvers"], "conans/test/functional")
-    }
-    parallel(paralellRuns)
-}
-
-void runFunctionalTestsVariants(List<Map> configs) {
-    echo "runFunctionalTestsWithVariants"
-    def paralellRuns = [:]
-    configs.each { config ->
-        paralellRuns["Functional - ${config['name']}"] = runTests(config["name"], config["pyvers"], "conans/test/functional")
+        paralellRuns["Unit - ${config['node']}"] = runTests(config["node"], config["pyvers"], moduleName)
     }
     parallel(paralellRuns)
 }
@@ -102,11 +79,14 @@ try {
     cancelPrevious()
     def branchName = env.BRANCH_NAME
     def jobName = env.JOB_NAME
-    def configs = getConfigurations(branchName, jobName)
+    echo "runUnitTests"
 
-    runUnitAndIntegrationTests(configs)
-    runFunctionalTestsDefault(configs)
-    runFunctionalTestsVariants(configs)
+    echo "runIntegrationTests"
+
+    echo "runFunctionalTestsDefault"
+
+    echo "runFunctionalTestsWithVariants"
+
 }
 catch(e){
     echo "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'"
