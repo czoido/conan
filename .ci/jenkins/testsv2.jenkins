@@ -22,9 +22,9 @@ List<Map> getConfigurations(String moduleName, String branchName, String jobName
         }
     }
     else if (jobName == "ConanNightly") {
-        configs.add([node: "Linux", pyvers: ["PY36", "PY39"]])
-        configs.add([node: "Windows", pyvers: ["PY36", "PY39"]])
-        configs.add([node: "Macos", pyvers: ["PY36", "PY39"]])
+        configs.add([node: "Linux", pyvers: ["PY36", "PY38"]])
+        configs.add([node: "Windows", pyvers: ["PY36", "PY38"]])
+        configs.add([node: "Macos", pyvers: ["PY36", "PY38"]])
     }
     else if (branchName =~ /(^release.*)|(^develop2)/) {
         if (moduleName=="conans/test/functional") {
@@ -33,9 +33,9 @@ List<Map> getConfigurations(String moduleName, String branchName, String jobName
             configs.add([node: "Macos", pyvers: ["PY36"]])
         }
         else {
-            configs.add([node: "Linux", pyvers: ["PY36", "PY39"]])
-            configs.add([node: "Windows", pyvers: ["PY36", "PY39"]])
-            configs.add([node: "Macos", pyvers: ["PY36", "PY39"]])
+            configs.add([node: "Linux", pyvers: ["PY36", "PY38"]])
+            configs.add([node: "Windows", pyvers: ["PY36", "PY38"]])
+            configs.add([node: "Macos", pyvers: ["PY36", "PY38"]])
         }
     }
     return configs
@@ -65,8 +65,17 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
                         echo "Docker Image: $dockerImage"
                         sh("docker pull ${dockerImage}:latest")
                         docker.image(dockerImage).inside("--entrypoint= -e PYENV_ROOT=/home/conan/.pyenv") {
-                            sh(script: "pyenv global \$${pythonVersion}")
-                            sh(script: "python --version")
+                            def sourcedir = "/home/conan/"
+                            sh(script: "cp -R ./ ${sourcedir}")
+                            def python = "/home/conan/.pyenv/versions/\$${pythonVersion}/bin/python"
+                            def pyenv = "/home/conan/.pyenv/bin/pyenv"
+                            def command = "su - conan -c \"" \
+                                          + "${pyenv} global \$${pythonVersion} &&" \
+                                          + "${python} -m pip install -r conans/requirements.txt &&" \
+                                          + "${python} -m pip install -r conans/requirements_server.txt &&" \
+                                          + "${python} -m pip install -r conans/requirements_dev.txt &&" \
+                                          + "${python} -m pytest ${module} -n=4\""
+                            sh(script: command)
                         }
                     }
                     finally {}
