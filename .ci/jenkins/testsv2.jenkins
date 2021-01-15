@@ -15,27 +15,27 @@ List<Map> getConfigurations(String moduleName, String branchName, String jobName
     // TODO: handle revision cases
     def configs = []
     if (branchName =~ /(^PR-.*)/) {
-        configs.add([node: "Linux", pyvers: ["py36"]])
+        configs.add([node: "Linux", pyvers: ["PY36"]])
         if (moduleName=="conans/test/functional") {
-            configs.add([node: "Windows", pyvers: ["py36"]])
-            configs.add([node: "Macos", pyvers: ["py36"]])
+            configs.add([node: "Windows", pyvers: ["PY36"]])
+            configs.add([node: "Macos", pyvers: ["PY36"]])
         }
     }
     else if (jobName == "ConanNightly") {
-        configs.add([node: "Linux", pyvers: ["py36", "py38"]])
-        configs.add([node: "Windows", pyvers: ["py36", "py38"]])
-        configs.add([node: "Macos", pyvers: ["py36", "py38"]])
+        configs.add([node: "Linux", pyvers: ["PY36", "PY39"]])
+        configs.add([node: "Windows", pyvers: ["PY36", "PY39"]])
+        configs.add([node: "Macos", pyvers: ["PY36", "PY39"]])
     }
     else if (branchName =~ /(^release.*)|(^develop2)/) {
         if (moduleName=="conans/test/functional") {
-            configs.add([node: "Linux", pyvers: ["py36"]])
-            configs.add([node: "Windows", pyvers: ["py36"]])
-            configs.add([node: "Macos", pyvers: ["py36"]])
+            configs.add([node: "Linux", pyvers: ["PY36"]])
+            configs.add([node: "Windows", pyvers: ["PY36"]])
+            configs.add([node: "Macos", pyvers: ["PY36"]])
         }
         else {
-            configs.add([node: "Linux", pyvers: ["py36", "py38"]])
-            configs.add([node: "Windows", pyvers: ["py36", "py38"]])
-            configs.add([node: "Macos", pyvers: ["py36", "py38"]])
+            configs.add([node: "Linux", pyvers: ["PY36", "PY39"]])
+            configs.add([node: "Windows", pyvers: ["PY36", "PY39"]])
+            configs.add([node: "Macos", pyvers: ["PY36", "PY39"]])
         }
     }
     return configs
@@ -63,14 +63,18 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
                     try {
                         def dockerImage = getDockerImage(module)
                         echo "Docker Image: $dockerImage"
-                        docker.image(dockerImage).inside("--entrypoint=") {
-                            sh(script: "pwd && ls")
+                        sh("docker pull ${dockerImage}:latest")
+                        docker.image(dockerImage).inside("--entrypoint= -e PYENV_ROOT=/home/conan/.pyenv") {
+                            sh(script: "pyenv global \$${pythonVersion}")
+                            sh(script: "python --version")
                         }
                     }
                     finally {}
                 }
                 else if (nodeName=="Macos") {
                     try {
+                        sh(script: "pwd && ls")
+                        sh(script: "touch mockfile.txt")
                         sh(script: "pwd && ls")
                     }
                     finally {}
