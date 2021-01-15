@@ -64,17 +64,18 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
                         def dockerImage = getDockerImage(module)
                         echo "Docker Image: $dockerImage"
                         sh("docker pull ${dockerImage}:latest")
-                        docker.image(dockerImage).inside("--entrypoint= -e PYENV_ROOT=/home/conan/.pyenv") {
+                        docker.image(dockerImage).inside("--entrypoint=") {
                             def sourcedir = "/home/conan/"
+                            def pyenvdir = "/home/conan/.pyenv"
                             sh(script: "cp -R ./ ${sourcedir}")
-                            def python = "/home/conan/.pyenv/versions/\$${pythonVersion}/bin/python"
-                            def pyenv = "/home/conan/.pyenv/bin/pyenv"
                             def command = "su - conan -c \"" \
-                                          + "${pyenv} global \$${pythonVersion} &&" \
-                                          + "${python} -m pip install -r conans/requirements.txt &&" \
-                                          + "${python} -m pip install -r conans/requirements_server.txt &&" \
-                                          + "${python} -m pip install -r conans/requirements_dev.txt &&" \
-                                          + "${python} -m pytest ${module} -n=4\""
+                                          + "export PYENV_ROOT=${pyenvdir} &&" \
+                                          + "export PATH=\"${pyenvdir}/bin:${pyenvdir}/versions/\$${pythonVersion}/bin/:\$PATH\" &&" \
+                                          + "printenv && pyenv global \$${pythonVersion} &&" \
+                                          + "python -m pip install -r conans/requirements.txt &&" \
+                                          + "python -m pip install -r conans/requirements_server.txt &&" \
+                                          + "python -m pip install -r conans/requirements_dev.txt &&" \
+                                          + "python -m pytest ${module} -n=4\""
                             sh(script: command)
                         }
                     }
