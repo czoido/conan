@@ -66,7 +66,7 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
                         sh("docker pull ${dockerImage}:latest")
                         docker.image(dockerImage).inside("--entrypoint=") {
                             def sourcedir = "/home/conan/"
-                            def pyenvdir = "/home/conan/.pyenv"
+                            def pyenvdir = "${sourcedir}.pyenv"
                             sh(script: "cp -R ./ ${sourcedir}")
                             def command = "su - conan -c \"" \
                                           + "export PYENV_ROOT=${pyenvdir} &&" \
