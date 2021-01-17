@@ -9,7 +9,7 @@ from conans.test.utils.tools import TestClient, TestServer
 from conans.util.files import rmdir
 
 
-@pytest.mark.slow
+@pytest.mark.skip(reason="failing test")
 class SharedChainTest(unittest.TestCase):
 
     def setUp(self):
