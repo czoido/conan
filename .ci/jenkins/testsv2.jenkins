@@ -56,63 +56,67 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
     def ret = {
         node(nodeName) {
             stage("${nodeName} - ${pythonVersion}") {
+
                 def scmVars = checkout scm
-                print(scmVars)
                 def commit = scmVars["GIT_COMMIT"].substring(0, 4)
+
+                def flavor = "revisions"
+
+                def workDir = getTempFolder(nodeName) + "${commit}/${pythonVersion}/${flavor}/"
+                def venvName = "env_${env.BUILD_NUMBER}_${pythonVersion}_${commit}"
+
+                def pipInstalls = "python -m pip install -r conans/requirements.txt && " \
+                                + "python -m pip install -r conans/requirements_server.txt && " \
+                                + "python -m pip install -r conans/requirements_dev.txt && "
+
+                def launchTests = "python -m pytest ${module} -n=4"
+
                 if (nodeName=="Linux") {
                     try {
                         def dockerImage = getDockerImage(module)
-                        echo "Docker Image: $dockerImage"
-                        sh("docker pull ${dockerImage}:latest")
                         docker.image(dockerImage).inside("--entrypoint=") {
                             def sourcedir = "/home/conan/"
                             def pyenvdir = "${sourcedir}.pyenv"
                             sh(script: "cp -R ./ ${sourcedir}")
                             def command = "su - conan -c \"" \
                                           + "export PYENV_ROOT=${pyenvdir} && " \
-                                          + "export PATH=\"${pyenvdir}/bin:${pyenvdir}/versions/\$${pythonVersion}/bin/:\$PATH\" && " \
+                                          + "export PATH=\"${pyenvdir}/bin:\$PATH\" && " \
                                           + "pyenv global \$${pythonVersion} && " \
-                                          + "python -m pip install -r conans/requirements.txt && " \
-                                          + "python -m pip install -r conans/requirements_server.txt && " \
-                                          + "python -m pip install -r conans/requirements_dev.txt && " \
-                                          + "python -m pytest ${module} -n=4\""
+                                          + pipInstalls \
+                                          + "${launchTests}\""
                             sh(script: command)
                         }
                     }
                     finally {}
                 }
                 else if (nodeName=="Macos") {
-                    def flavor = "revisions"
-                    def workDir = getTempFolder(nodeName) + "${commit}/${pythonVersion}/${flavor}/"
                     def localDir = "/Users/jenkins"
-                    def venvName = "env_${env.BUILD_NUMBER}_${pythonVersion}_${commit}"
-                    withEnv(["CONAN_TEST_FOLDER=${workDir}", "PY27=2.7.18", "PY36=3.6.12", "PY38=3.8.6", "PY39=3.9.0", "PYENV_ROOT=${localDir}/.pyenv", "PATH+EXTRA=${localDir}/.pyenv:${localDir}/.pyenv/shims:${localDir}/.pyenv/plugins/pyenv-virtualenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
+                    withEnv(["CONAN_TEST_FOLDER=${workDir}", "PY27=2.7.18", "PY36=3.6.12", "PY38=3.8.6", "PY39=3.9.0", "PYENV_ROOT=${localDir}/.pyenv", "PATH+EXTRA=${localDir}/.pyenv/shims:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
                         try {
-                                sh(script: "printenv")
                                 sh(script: "mkdir -p ${workDir}")
-                                sh(script: "pyenv versions")
                                 def configVenv =  "eval \"\$(pyenv init -)\" && eval \"\$(pyenv virtualenv-init -)\" && "  \
                                                 + "pyenv virtualenv \$${pythonVersion} ${venvName} && " \
                                                 + "pyenv activate ${venvName} && "
-                                def pipInstalls = "python -m pip install -r conans/requirements.txt && " \
-                                                + "python -m pip install -r conans/requirements_server.txt && " \
-                                                + "python -m pip install -r conans/requirements_dev.txt && "
-                                def launchTests = "python -m pytest ${module} -n=4"
                                 def launchCommand = configVenv + pipInstalls + launchTests
                                 sh(script: launchCommand)
                         }
                         finally {
                             sh(script: "pyenv uninstall -f ${venvName}")
-                            sh(script: "pyenv versions")
                             sh(script: "rm -rf ${workDir}")
                         }
                     }
                 }
                 else if (nodeName=="Windows") {
-                    try {
-                        bat(script: "set")
+                    withEnv(["CONAN_TEST_FOLDER=${workDir}", "CONAN_BASH_PATH=c:/tools/msys64/usr/bin/bash",
+                             "CONAN_USER_HOME_SHORT=${workDir}.conan"]) {
+                        try {
+                            bat(script: "if not exist \"${workDir}\" mkdir \"${workDir}\"")
+                            bat(script: "set")
+                        }
+                        finally {
+                            bat(script: "rd /s /q \"${workDir}\"")
+                        }
                     }
-                    finally {}
                 }
                 cleanWs()
             }
@@ -136,10 +140,8 @@ void runTestsModule(String moduleName, String branchName, String jobName) {
 def testModules = ["conans/test/unittests", "conans/test/integration", "conans/test/functional"]
 
 try {
-    node("Linux") {
-        sh(script: "printenv")
-    }
     cancelPrevious()
+
     def branchName = env.BRANCH_NAME
     def jobName = env.JOB_NAME
 
