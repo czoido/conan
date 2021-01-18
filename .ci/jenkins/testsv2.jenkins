@@ -60,7 +60,7 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
                 def scmVars = checkout scm
                 def commit = scmVars["GIT_COMMIT"].substring(0, 4)
 
-                def flavor = "revisions"
+                def flavor = "disabled_revisions"
 
                 def workDir = getTempFolder(nodeName) + "${commit}/${pythonVersion}/${flavor}/"
                 def venvName = "env_${env.BUILD_NUMBER}_${pythonVersion}_${commit}"
@@ -112,6 +112,7 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
                              "PY27=Python27", "PY36=Python36", "PY38=Python38-64"]) {
                         try {
                             bat(script: "if not exist \"${workDir}\" mkdir \"${workDir}\"")
+                            bat(script: "set")
                             def pythonLocation = "C:/%${pythonVersion}%/python.exe"
                             def configVenv =  "virtualenv --python ${pythonLocation} ${workDir}${venvName} && " \
                                             + "${workDir}${venvName}/Scripts/activate && python --version && "
