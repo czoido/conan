@@ -82,33 +82,31 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
                     finally {}
                 }
                 else if (nodeName=="Macos") {
-                    try {
-                        def flavor = "revisions"
-                        def workDir = getTempFolder(nodeName) + "${commit}/${pythonVersion}/${flavor}"
-                        echo "${workDir}"
-                        echo "${workDir}"
-                        echo "${workDir}"
-                        echo "${workDir}"
-                        def localDir = "/Users/jenkins"
-                        withEnv(["CONAN_TEST_FOLDER=${workdir}", "PY27=2.7.18", "PY36=3.6.12", "PY38=3.8.6", "PY39=3.9.0", "PYENV_ROOT=${localDir}/.pyenv", "PATH+EXTRA=${localDir}/.pyenv:${localDir}/.pyenv/shims:${localDir}/.pyenv/plugins/pyenv-virtualenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
-                            def venvName = "env_${pythonVersion}_${commit}"
-                            sh(script: "printenv")
+                    def flavor = "revisions"
+                    def workDir = getTempFolder(nodeName) + "${commit}/${pythonVersion}/${flavor}/"
+                    def localDir = "/Users/jenkins"
+                    def venvName = "env_${env.BUILD_NUMBER}_${pythonVersion}_${commit}"
+                    withEnv(["CONAN_TEST_FOLDER=${workDir}", "PY27=2.7.18", "PY36=3.6.12", "PY38=3.8.6", "PY39=3.9.0", "PYENV_ROOT=${localDir}/.pyenv", "PATH+EXTRA=${localDir}/.pyenv:${localDir}/.pyenv/shims:${localDir}/.pyenv/plugins/pyenv-virtualenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
+                        try {
+                                sh(script: "printenv")
+                                sh(script: "mkdir -p ${workDir}")
+                                sh(script: "pyenv versions")
+                                def configVenv =  "eval \"\$(pyenv init -)\" && eval \"\$(pyenv virtualenv-init -)\" && "  \
+                                                + "pyenv virtualenv \$${pythonVersion} ${venvName} && " \
+                                                + "pyenv activate ${venvName} && "
+                                def pipInstalls = "python -m pip install -r conans/requirements.txt && " \
+                                                + "python -m pip install -r conans/requirements_server.txt && " \
+                                                + "python -m pip install -r conans/requirements_dev.txt && "
+                                def launchTests = "python -m pytest ${module} -n=4"
+                                def launchCommand = configVenv + pipInstalls + launchTests
+                                sh(script: launchCommand)
+                        }
+                        finally {
+                            sh(script: "pyenv uninstall -f ${venvName}")
                             sh(script: "pyenv versions")
-                            def configVenv =  "eval \"\$(pyenv init -)\" && eval \"\$(pyenv virtualenv-init -)\" && "  \
-                                            + "pyenv virtualenv \$${pythonVersion} ${venvName} && " \
-                                            + "pyenv activate ${venvName} && "
-                            def pipInstalls = "python -m pip install -r conans/requirements.txt && " \
-                                            + "python -m pip install -r conans/requirements_server.txt && " \
-                                            + "python -m pip install -r conans/requirements_dev.txt && "
-                            def launchTests = "python -m pytest ${module} -n=4 && "
-                            def cleanVenv =   "pyenv deactivate && " \
-                                            + "pyenv uninstall -f ${venvName}"
-                            def launchCommand = configVenv + pipInstalls + launchTests + cleanVenv
-                            sh(script: launchCommand)
-                            sh(script: "pyenv versions")
+                            sh(script: "rm -rf ${workDir}")
                         }
                     }
-                    finally {}
                 }
                 else if (nodeName=="Windows") {
                     try {
