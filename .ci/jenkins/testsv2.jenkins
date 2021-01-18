@@ -85,18 +85,27 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
                     try {
                         def flavor = "revisions"
                         def workDir = getTempFolder(nodeName) + "${commit}/${pythonVersion}/${flavor}"
-                        withEnv(["PY27=2.7.18", "PY36=3.6.12", "PY38=3.8.6", "PY39=3.9.0", "PYENV_ROOT=/Users/jenkins/.pyenv", "PATH+EXTRA=/Users/jenkins/.pyenv:/Users/jenkins/.pyenv/shims:/Users/jenkins/.pyenv/plugins/pyenv-virtualenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin", "CONAN_TEST_FOLDER=${workDir}"]) {
+                        echo "${workDir}"
+                        echo "${workDir}"
+                        echo "${workDir}"
+                        echo "${workDir}"
+                        def localDir = "/Users/jenkins"
+                        withEnv(["CONAN_TEST_FOLDER=${workdir}", "PY27=2.7.18", "PY36=3.6.12", "PY38=3.8.6", "PY39=3.9.0", "PYENV_ROOT=${localDir}/.pyenv", "PATH+EXTRA=${localDir}/.pyenv:${localDir}/.pyenv/shims:${localDir}/.pyenv/plugins/pyenv-virtualenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
                             def venvName = "env_${pythonVersion}_${commit}"
-                            sh(script: "pyenv versions && which pyenv")
+                            sh(script: "printenv")
+                            sh(script: "pyenv versions")
                             def configVenv =  "eval \"\$(pyenv init -)\" && eval \"\$(pyenv virtualenv-init -)\" && "  \
                                             + "pyenv virtualenv \$${pythonVersion} ${venvName} && " \
-                                            + "pyenv activate ${venvName}"
-                            sh(script: configVenv)
-                            def launchTestsCommand = "python --version"
-                            sh(script: launchTestsCommand)
-                            def uninstallVenv = "pyenv deactivate && "  \
-                                               + "pyenv uninstall -f ${venvName}"
-                            sh(script: uninstallVenv)
+                                            + "pyenv activate ${venvName} && "
+                            def pipInstalls = "python -m pip install -r conans/requirements.txt && " \
+                                            + "python -m pip install -r conans/requirements_server.txt && " \
+                                            + "python -m pip install -r conans/requirements_dev.txt && "
+                            def launchTests = "python -m pytest ${module} -n=4 && "
+                            def cleanVenv =   "pyenv deactivate && " \
+                                            + "pyenv uninstall -f ${venvName}"
+                            def launchCommand = configVenv + pipInstalls + launchTests + cleanVenv
+                            sh(script: launchCommand)
+                            sh(script: "pyenv versions")
                         }
                     }
                     finally {}
