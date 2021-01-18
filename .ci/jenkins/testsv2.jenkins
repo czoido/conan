@@ -69,12 +69,12 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
                             def pyenvdir = "${sourcedir}.pyenv"
                             sh(script: "cp -R ./ ${sourcedir}")
                             def command = "su - conan -c \"" \
-                                          + "export PYENV_ROOT=${pyenvdir} &&" \
-                                          + "export PATH=\"${pyenvdir}/bin:${pyenvdir}/versions/\$${pythonVersion}/bin/:\$PATH\" &&" \
-                                          + "printenv && pyenv global \$${pythonVersion} &&" \
-                                          + "python -m pip install -r conans/requirements.txt &&" \
-                                          + "python -m pip install -r conans/requirements_server.txt &&" \
-                                          + "python -m pip install -r conans/requirements_dev.txt &&" \
+                                          + "export PYENV_ROOT=${pyenvdir} && " \
+                                          + "export PATH=\"${pyenvdir}/bin:${pyenvdir}/versions/\$${pythonVersion}/bin/:\$PATH\" && " \
+                                          + "pyenv global \$${pythonVersion} && " \
+                                          + "python -m pip install -r conans/requirements.txt && " \
+                                          + "python -m pip install -r conans/requirements_server.txt && " \
+                                          + "python -m pip install -r conans/requirements_dev.txt && " \
                                           + "python -m pytest ${module} -n=4\""
                             sh(script: command)
                         }
@@ -84,23 +84,19 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
                 else if (nodeName=="Macos") {
                     try {
                         def flavor = "revisions"
-                        def workDir = getTempFolder() + "${commit}/${pythonVersion}/${flavor}"
+                        def workDir = getTempFolder(nodeName) + "${commit}/${pythonVersion}/${flavor}"
                         withEnv(["PY27=2.7.18", "PY36=3.6.12", "PY38=3.8.6", "PY39=3.9.0", "PYENV_ROOT=/Users/jenkins/.pyenv", "PATH+EXTRA=/Users/jenkins/.pyenv:/Users/jenkins/.pyenv/shims:/Users/jenkins/.pyenv/plugins/pyenv-virtualenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin", "CONAN_TEST_FOLDER=${workDir}"]) {
-                            
-                            sh(script: "printenv && ls -la ${env.WORKSPACE}")
-                            sh(script: "pwd")
-
                             def venvName = "env_${pythonVersion}_${commit}"
                             sh(script: "pyenv versions && which pyenv")
-                            def configVenv = "eval \"\$(pyenv init -)\" && eval \"\$(pyenv virtualenv-init -)\" && "  \
+                            def configVenv =  "eval \"\$(pyenv init -)\" && eval \"\$(pyenv virtualenv-init -)\" && "  \
                                             + "pyenv virtualenv \$${pythonVersion} ${venvName} && " \
                                             + "pyenv activate ${venvName}"
                             sh(script: configVenv)
-                            def launchTestsCommand = "python --version && pyenv versions"
+                            def launchTestsCommand = "python --version"
                             sh(script: launchTestsCommand)
                             def uninstallVenv = "pyenv deactivate && "  \
                                                + "pyenv uninstall -f ${venvName}"
-                            sh(script: launchTestsCommand)
+                            sh(script: uninstallVenv)
                         }
                     }
                     finally {}
