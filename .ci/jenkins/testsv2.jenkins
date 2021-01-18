@@ -94,14 +94,14 @@ private Closure runTests(String nodeName, String pythonVersion, String module) {
                     withEnv(["CONAN_TEST_FOLDER=${workDir}", "PY27=2.7.18", "PY36=3.6.12", "PY38=3.8.6", "PY39=3.9.0", "PYENV_ROOT=${localDir}/.pyenv", "PATH+EXTRA=${localDir}/.pyenv/shims:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
                         try {
                                 sh(script: "mkdir -p ${workDir}")
-                                def configVenv =  "eval \"\$(pyenv init -)\" && eval \"\$(pyenv virtualenv-init -)\" && "  \
-                                                + "pyenv virtualenv \$${pythonVersion} ${venvName} && " \
-                                                + "pyenv activate ${venvName} && "
+                                def pythonLocation = "${localDir}/.pyenv/versions/\$${pythonVersion}/bin/python"
+                                def configVenv = "pyenv global \$${pythonVersion} && " \
+                                                + "virtualenv --python ${pythonLocation} ${workDir}${venvName} && " \
+                                                + "source ${workDir}${venvName}/bin/activate && "
                                 def launchCommand = configVenv + pipInstalls + launchTests
                                 sh(script: launchCommand)
                         }
                         finally {
-                            sh(script: "pyenv uninstall -f ${venvName}")
                             sh(script: "rm -rf ${workDir}")
                         }
                     }
