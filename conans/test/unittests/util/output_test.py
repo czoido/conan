@@ -5,6 +5,7 @@ import unittest
 import zipfile
 
 import six
+import pytest
 
 from conans.client import tools
 from conans.client.output import ConanOutput
