@@ -10,7 +10,8 @@ from conans.model.conan_file import get_env_context_manager
 from conans.model.manifest import FileTreeManifest
 from conans.util.dates import timestamp_now
 from conans.util.env_reader import get_env
-from conans.util.files import load, md5sum
+from conans.util.files import load
+from conans.util.hash import md5sum
 
 IMPORTS_MANIFESTS = "conan_imports_manifest.txt"
 

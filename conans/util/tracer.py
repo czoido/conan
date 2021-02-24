@@ -8,7 +8,7 @@ import fasteners
 
 from conans.errors import ConanException
 from conans.model.ref import ConanFileReference, PackageReference
-from conans.util.files import md5sum, sha1sum
+from conans.util.hash import md5sum, sha1sum
 from conans.util.log import logger
 
 

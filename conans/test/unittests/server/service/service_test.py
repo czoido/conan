@@ -17,7 +17,8 @@ from conans.server.store.disk_adapter import ServerDiskAdapter
 from conans.server.store.server_store import ServerStore
 from conans.test.assets.cpp_test_files import cpp_hello_source_files
 from conans.test.utils.test_files import temp_folder
-from conans.util.files import load, md5sum, mkdir, save, save_files
+from conans.util.files import load, mkdir, save, save_files
+from conans.util.hash import md5sum
 
 
 class MockFileSaver(object):

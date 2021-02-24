@@ -9,7 +9,8 @@ from bottle import static_file
 from conans.model.ref import ConanFileReference
 from conans.test.utils.test_files import tgz_with_contents
 from conans.test.utils.tools import TestClient, StoppableThreadBottle
-from conans.util.files import md5sum, sha1sum, sha256sum, load
+from conans.util.hash import md5sum, sha1sum, sha256sum
+from conans.util.files import load
 
 
 class ConanDataTest(unittest.TestCase):

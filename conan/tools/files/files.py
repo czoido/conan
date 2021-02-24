@@ -4,7 +4,7 @@ import os
 import six
 
 from conans.client.downloaders.download import run_downloader
-from conans.client.tools.files import unzip
+from conans.util.compress import unzip
 from conans.errors import ConanException
 from conans.util.fallbacks import default_output, default_requester
 
@@ -169,8 +169,8 @@ def download(url, filename, verify=True, out=None, retry=None, retry_wait=None, 
     :param sha256: SHA-256 hash code to check the downloaded file
     :return: None
     """
-    out = default_output(out, 'conans.client.tools.net.download')
-    requester = default_requester(requester, 'conans.client.tools.net.download')
+    out = default_output(out, 'conan.tools.files')
+    requester = default_requester(requester, 'conan.tools.files')
     from conans.tools import _global_config as config
 
     # It might be possible that users provide their own requester

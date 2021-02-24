@@ -12,7 +12,7 @@ from conans.client.tools.win import get_cased_path
 from conans.errors import ConanException
 from conans.paths import PACKAGE_TGZ_NAME
 from conans.test import CONAN_TEST_FOLDER
-from conans.util.files import gzopen_without_timestamps
+from conans.util.compress import gzopen_without_timestamps
 
 
 def wait_until_removed(folder):

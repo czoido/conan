@@ -1,5 +1,4 @@
 import errno
-import gzip
 import hashlib
 import os
 import platform
@@ -7,11 +6,7 @@ import re
 import shutil
 import stat
 import sys
-import tarfile
 import tempfile
-
-
-from os.path import abspath, join as joinpath, realpath
 from contextlib import contextmanager
 
 import six
@@ -126,46 +121,6 @@ def normalize(text):
         return re.sub("\r?\n", "\r\n", text)
     else:
         return text
-
-
-def md5(content):
-    try:
-        md5alg = hashlib.md5()
-    except ValueError:  # FIPS error https://github.com/conan-io/conan/issues/7800
-        md5alg = hashlib.md5(usedforsecurity=False)
-    if isinstance(content, bytes):
-        tmp = content
-    else:
-        tmp = content.encode("utf-8")
-    md5alg.update(tmp)
-    return md5alg.hexdigest()
-
-
-def md5sum(file_path):
-    return _generic_algorithm_sum(file_path, "md5")
-
-
-def sha1sum(file_path):
-    return _generic_algorithm_sum(file_path, "sha1")
-
-
-def sha256sum(file_path):
-    return _generic_algorithm_sum(file_path, "sha256")
-
-
-def _generic_algorithm_sum(file_path, algorithm_name):
-
-    with open(file_path, 'rb') as fh:
-        try:
-            m = hashlib.new(algorithm_name)
-        except ValueError:  # FIPS error https://github.com/conan-io/conan/issues/7800
-            m = hashlib.new(algorithm_name, usedforsecurity=False)
-        while True:
-            data = fh.read(8192)
-            if not data:
-                break
-            m.update(data)
-        return m.hexdigest()
 
 
 def save_append(path, content, encoding="utf-8"):
@@ -307,66 +262,6 @@ def path_exists(path, basedir):
             return False
         tmp = os.path.normpath(tmp + os.sep + chunk)
     return True
-
-
-def gzopen_without_timestamps(name, mode="r", fileobj=None, **kwargs):
-    """ !! Method overrided by laso to pass mtime=0 (!=None) to avoid time.time() was
-        setted in Gzip file causing md5 to change. Not possible using the
-        previous tarfile open because arguments are not passed to GzipFile constructor
-    """
-    compresslevel = int(os.getenv("CONAN_COMPRESSION_LEVEL", 9))
-
-    if mode not in ("r", "w"):
-        raise ValueError("mode must be 'r' or 'w'")
-
-    try:
-        fileobj = gzip.GzipFile(name, mode, compresslevel, fileobj, mtime=0)
-    except OSError:
-        if fileobj is not None and mode == 'r':
-            raise tarfile.ReadError("not a gzip file")
-        raise
-
-    try:
-        # Format is forced because in Python3.8, it changed and it generates different tarfiles
-        # with different checksums, which break hashes of tgzs
-        t = tarfile.TarFile.taropen(name, mode, fileobj, format=tarfile.GNU_FORMAT, **kwargs)
-    except IOError:
-        fileobj.close()
-        if mode == 'r':
-            raise tarfile.ReadError("not a gzip file")
-        raise
-    except Exception:
-        fileobj.close()
-        raise
-    t._extfileobj = False
-    return t
-
-
-def tar_extract(fileobj, destination_dir):
-    """Extract tar file controlling not absolute paths and fixing the routes
-    if the tar was zipped in windows"""
-    def badpath(path, base):
-        # joinpath will ignore base if path is absolute
-        return not realpath(abspath(joinpath(base, path))).startswith(base)
-
-    def safemembers(members):
-        base = realpath(abspath(destination_dir))
-
-        for finfo in members:
-            if badpath(finfo.name, base) or finfo.islnk():
-                logger.warning("file:%s is skipped since it's not safe." % str(finfo.name))
-                continue
-            else:
-                # Fixes unzip a windows zipped file in linux
-                finfo.name = finfo.name.replace("\\", "/")
-                yield finfo
-
-    the_tar = tarfile.open(fileobj=fileobj)
-    # NOTE: The errorlevel=2 has been removed because it was failing in Win10, it didn't allow to
-    # "could not change modification time", with time=0
-    # the_tar.errorlevel = 2  # raise exception if any error
-    the_tar.extractall(path=destination_dir, members=safemembers(the_tar))
-    the_tar.close()
 
 
 def list_folder_subdirs(basedir, level):

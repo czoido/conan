@@ -25,8 +25,9 @@ from conans.client.tools.apple import *
 from conans.client.tools.android import *
 # Tools form conans.util
 from conans.util.env_reader import get_env
-from conans.util.files import _generic_algorithm_sum, load, md5, md5sum, mkdir, relative_dirs, \
-    rmdir, save as files_save, save_append, sha1sum, sha256sum, to_file_bytes, touch
+from conans.util.files import load, mkdir, relative_dirs, rmdir, save as files_save,\
+     save_append, to_file_bytes, touch
+from conans.util.hash import md5, md5sum, sha1sum, sha256sum
 from conans.util.log import logger
 from conans.client.tools.version import Version
 from conans.client.build.cppstd_flags import cppstd_flag_new as cppstd_flag  # pylint: disable=unused-import

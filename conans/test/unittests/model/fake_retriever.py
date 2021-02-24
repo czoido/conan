@@ -2,7 +2,7 @@ import os
 
 from conans import DEFAULT_REVISION_V1
 from conans.client.graph.graph import Node, RECIPE_CONSUMER, CONTEXT_HOST
-from conans.client.tools.files import save
+from conans.utils.tools.files import save
 from conans.model.ref import ConanFileReference
 from conans.paths import CONANFILE
 from conans.test.utils.test_files import temp_folder

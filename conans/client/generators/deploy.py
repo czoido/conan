@@ -5,7 +5,8 @@ from conans.model import Generator
 from conans.model.manifest import FileTreeManifest
 from conans.paths import BUILD_INFO_DEPLOY
 from conans.util.dates import timestamp_now
-from conans.util.files import mkdir, md5sum
+from conans.util.hash import md5sum
+from conans.util.files import mkdir
 
 
 FILTERED_FILES = ["conaninfo.txt", "conanmanifest.txt"]

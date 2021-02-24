@@ -10,7 +10,8 @@ import pytest
 from conans.client.tools.files import chdir
 from conans.model.manifest import gather_files
 from conans.test.utils.test_files import temp_folder
-from conans.util.files import tar_extract, gzopen_without_timestamps, save
+from conans.util.compress import tar_extract, gzopen_without_timestamps
+from conans.util.files import save
 
 
 class TarExtractTest(unittest.TestCase):

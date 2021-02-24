@@ -18,7 +18,8 @@ from conans.paths import (CONAN_MANIFEST, CONANFILE, EXPORT_SOURCES_TGZ_NAME,
                           EXPORT_TGZ_NAME, PACKAGE_TGZ_NAME, CONANINFO)
 from conans.search.search import search_packages, search_recipes
 from conans.util.files import (load, clean_dirty, is_dirty,
-                               gzopen_without_timestamps, set_dirty_context_manager)
+                               set_dirty_context_manager)
+from conans.util.compress import gzopen_without_timestamps                               
 from conans.util.log import logger
 from conans.util.tracer import log_recipe_upload, log_compressed_files, log_package_upload
 from conans.tools import cpu_count

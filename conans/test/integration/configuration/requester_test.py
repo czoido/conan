@@ -11,7 +11,7 @@ from conans.client.cache.cache import ClientCache
 from conans.client.conf import get_default_client_conf, ConanClientConfigParser
 from conans.client.rest.conan_requester import ConanRequester
 from conans.client.tools import environment_append
-from conans.client.tools.files import replace_in_file, save
+from conans.util.files import replace_in_file, save
 from conans.errors import ConanException
 from conans.paths import CACERT_FILE
 from conans.test.utils.tools import temp_folder

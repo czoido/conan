@@ -9,7 +9,8 @@ from conans.model.ref import ConanFileReference, PackageReference
 from conans.paths import EXPORT_SOURCES_TGZ_NAME, EXPORT_SRC_FOLDER, EXPORT_TGZ_NAME
 from conans.test.utils.test_files import scan_folder
 from conans.test.utils.tools import NO_SETTINGS_PACKAGE_ID, TestClient, TestServer
-from conans.util.files import load, md5sum, save
+from conans.util.files import load, save
+from conans.util.hash import md5sum
 
 conanfile_py = """
 from conans import ConanFile

@@ -7,7 +7,7 @@ from conans.client.rest import response_to_str
 from conans.errors import AuthenticationException, ConanException, \
     NotFoundException, ForbiddenException, RequestErrorException, InternalErrorException
 from conans.util import progress_bar
-from conans.util.files import sha1sum
+from conans.util.hash import sha1sum
 
 
 class FileUploader(object):

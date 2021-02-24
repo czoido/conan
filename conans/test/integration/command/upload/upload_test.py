@@ -19,7 +19,8 @@ from conans.paths import EXPORT_SOURCES_TGZ_NAME, PACKAGE_TGZ_NAME, PACKAGES_FOL
 from conans.test.utils.tools import NO_SETTINGS_PACKAGE_ID, TestClient, TestServer, \
     TurboTestClient, GenConanfile, TestRequester, TestingResponse
 from conans.util.env_reader import get_env
-from conans.util.files import gzopen_without_timestamps, is_dirty, save, set_dirty
+from conans.util.files import is_dirty, save, set_dirty
+from conans.util.compress import gzopen_without_timestamps
 
 conanfile = """from conans import ConanFile
 class MyPkg(ConanFile):
