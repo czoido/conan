@@ -3,7 +3,7 @@ from collections import namedtuple
 from io import StringIO
 from typing import Tuple, List, Optional
 
-from errors import ConanException
+from conans.errors import ConanException
 
 
 class BaseTable:
@@ -45,7 +45,8 @@ class BaseTable:
         fields = ', '.join([field_str(*it) for it in self.columns_description])
         guard = 'IF NOT EXISTS' if if_not_exists else ''
         table_checks = f", UNIQUE({', '.join(self.unique_together)})" if self.unique_together else ''
-        conn.execute(f"CREATE TABLE {guard} {self.table_name} ({fields} {table_checks});")
+        create_table = f"CREATE TABLE {guard} {self.table_name} ({fields} {table_checks});"
+        conn.execute(create_table)
 
     def dump(self, conn: sqlite3.Cursor, output: StringIO):
         r = conn.execute(f'SELECT rowid, * FROM {self.table_name}')

@@ -5,7 +5,7 @@ from typing import Tuple, Iterator
 
 from conan.cache._tables.base_table import BaseTable
 from conans.model.ref import PackageReference, ConanFileReference
-from errors import ConanException
+from conans.errors import ConanException
 from .references import References
 
 

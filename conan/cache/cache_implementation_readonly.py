@@ -7,7 +7,7 @@ from conan.cache.cache_implementation import CacheImplementation
 from conan.cache.exceptions import ReadOnlyCache
 from conan.cache.package_layout import PackageLayout
 from conan.cache.recipe_layout import RecipeLayout
-from model.ref import ConanFileReference, PackageReference
+from conans.model.ref import ConanFileReference, PackageReference
 
 
 class RecipeLayoutReadOnly(RecipeLayout):
