@@ -7,6 +7,7 @@ from conan.cache._tables.packages import Packages
 from conan.cache._tables.references import References
 from conan.cache.cache_implementation import CacheImplementation
 from conans.model.ref import ConanFileReference, PackageReference
+from conans.test.utils.tools import TestClient
 
 
 def is_random_folder(cache_folder: str, folder:str):
@@ -243,3 +244,10 @@ def test_concurrent_write_recipe_package(cache_implementation: CacheImplementati
     with recipe_layout.lock(blocking=False, wait=True):
         with package_layout.lock(blocking=True, wait=False):
             pass
+
+
+def test_current_cache():
+    client = TestClient()
+    client.current_folder = "/Users/carlos/Documents/developer/conan-develop/sandbox/jander"
+    client.cache_folder = "/Users/carlos/Documents/developer/conan-develop/sandbox/jander/cache"
+    client.run("create .")

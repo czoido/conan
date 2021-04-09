@@ -4,6 +4,8 @@ import uuid
 from io import StringIO
 from typing import Optional, Union, Tuple, Iterator
 
+import hashlib
+
 # TODO: Random folders are no longer accessible, how to get rid of them asap?
 # TODO: Add timestamp for LRU
 # TODO: We need the workflow to remove existing references.
@@ -66,7 +68,10 @@ class CacheImplementation(Cache):
     def get_default_path(item: Union[ConanFileReference, PackageReference]) -> str:
         """ Returns a folder for a Conan-Reference, it's deterministic if revision is known """
         if item.revision:
-            return item.full_str().replace('@', '/').replace('#', '/').replace(':', '/')  # TODO: TBD
+            path = item.full_str().replace('@', '/').replace('#', '/').replace(':', '/')  # TODO: TBD
+            hash_object = hashlib.sha1(path.encode())
+            return item.full_str().replace('@', '/').replace('#', '/').replace(':', '/')
+            #return hash_object.hexdigest()
         else:
             return str(uuid.uuid4())
 

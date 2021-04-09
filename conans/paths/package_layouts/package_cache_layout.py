@@ -1,5 +1,5 @@
 # coding=utf-8
-
+import functools
 import os
 import platform
 import threading
@@ -37,6 +37,16 @@ def short_path(func):
         return func
 
 
+def monitor_results(func):
+    @functools.wraps(func)
+    def wrapper(*func_args, **func_kwargs):
+        print('function call ' + func.__name__ + '()')
+        retval = func(*func_args,**func_kwargs)
+        print('function ' + func.__name__ + '() returns ' + repr(retval))
+        return retval
+    return wrapper
+
+
 class PackageCacheLayout(object):
     """ This is the package layout for Conan cache """
 
@@ -51,51 +61,63 @@ class PackageCacheLayout(object):
     def ref(self):
         return self._ref
 
+    @monitor_results
     def base_folder(self):
         """ Returns the base folder for this package reference """
         return self._base_folder
 
+    @monitor_results
     def export(self):
         return os.path.join(self._base_folder, EXPORT_FOLDER)
 
+    @monitor_results
     def conanfile(self):
         export = self.export()
         return os.path.join(export, CONANFILE)
 
+    @monitor_results
     def conandata(self):
         # FIXME : why not use properties?
         export = self.export()
         return os.path.join(export, DATA_YML)
 
     @short_path
+    @monitor_results
     def export_sources(self):
         return os.path.join(self._base_folder, EXPORT_SRC_FOLDER)
 
+    @monitor_results
     @short_path
     def source(self):
         return os.path.join(self._base_folder, SRC_FOLDER)
 
+    @monitor_results
     @short_path
     def scm_sources(self):
         return os.path.join(self._base_folder, SCM_SRC_FOLDER)
 
+    @monitor_results
     def builds(self):
         return os.path.join(self._base_folder, BUILD_FOLDER)
 
+    @monitor_results
     @short_path
     def build(self, pref):
         assert isinstance(pref, PackageReference)
         assert pref.ref == self._ref
         return os.path.join(self._base_folder, BUILD_FOLDER, pref.id)
 
+    @monitor_results
     def system_reqs(self):
         return os.path.join(self._base_folder, SYSTEM_REQS_FOLDER, SYSTEM_REQS)
 
+    @monitor_results
     def system_reqs_package(self, pref):
         assert isinstance(pref, PackageReference)
         assert pref.ref == self._ref
         return os.path.join(self._base_folder, SYSTEM_REQS_FOLDER, pref.id, SYSTEM_REQS)
 
+    @monitor_results
     def remove_system_reqs(self):
         system_reqs_folder = os.path.join(self._base_folder, SYSTEM_REQS_FOLDER)
         if not os.path.exists(self._base_folder):
@@ -108,15 +130,18 @@ class PackageCacheLayout(object):
             raise ConanException("Unable to remove system requirements at %s: %s"
                                  % (system_reqs_folder, str(e)))
 
+    @monitor_results
     def packages(self):
         return os.path.join(self._base_folder, PACKAGES_FOLDER)
 
+    @monitor_results
     @short_path
     def package(self, pref):
         assert isinstance(pref, PackageReference)
         assert pref.ref == self._ref, "{!r} != {!r}".format(pref.ref, self._ref)
         return os.path.join(self._base_folder, PACKAGES_FOLDER, pref.id)
 
+    @monitor_results
     @contextmanager
     def set_dirty_context_manager(self, pref):
         pkg_folder = os.path.join(self._base_folder, PACKAGES_FOLDER, pref.id)
@@ -124,21 +149,26 @@ class PackageCacheLayout(object):
         yield
         clean_dirty(pkg_folder)
 
+    @monitor_results
     def download_package(self, pref):
         return os.path.join(self._base_folder, "dl", "pkg", pref.id)
 
+    @monitor_results
     def download_export(self):
         return os.path.join(self._base_folder, "dl", "export")
 
+    @monitor_results
     def package_is_dirty(self, pref):
         pkg_folder = os.path.join(self._base_folder, PACKAGES_FOLDER, pref.id)
         return is_dirty(pkg_folder)
 
+    @monitor_results
     def package_id_exists(self, package_id):
         # The package exists if the folder exists, also for short_paths case
         pkg_folder = self.package(PackageReference(self._ref, package_id))
         return os.path.isdir(pkg_folder)
 
+    @monitor_results
     def package_remove(self, pref):
         # Here we could validate and check we own a write lock over this package
         assert isinstance(pref, PackageReference)
@@ -160,6 +190,7 @@ class PackageCacheLayout(object):
         # with self.update_metadata() as metadata:
         #    metadata.clear_package(pref.id)
 
+    @monitor_results
     def sources_remove(self):
         src_folder = os.path.join(self._base_folder, SRC_FOLDER)
         try:
@@ -176,6 +207,7 @@ class PackageCacheLayout(object):
                                  "Couldn't remove folder, might be busy or open\n"
                                  "Close any app using it, and retry" % (scm_folder, str(e)))
 
+    @monitor_results
     def export_remove(self):
         export_folder = self.export()
         rmdir(export_folder)
@@ -186,22 +218,27 @@ class PackageCacheLayout(object):
         scm_folder = os.path.join(self._base_folder, SCM_SRC_FOLDER)
         rm_conandir(scm_folder)
 
+    @monitor_results
     def package_metadata(self):
         return os.path.join(self._base_folder, PACKAGE_METADATA)
 
+    @monitor_results
     def recipe_manifest(self):
         return FileTreeManifest.load(self.export())
 
+    @monitor_results
     def package_manifests(self, pref):
         package_folder = self.package(pref)
         readed_manifest = FileTreeManifest.load(package_folder)
         expected_manifest = FileTreeManifest.create(package_folder)
         return readed_manifest, expected_manifest
 
+    @monitor_results
     def recipe_exists(self):
         return os.path.exists(self.export()) and \
                (not self._ref.revision or self.recipe_revision() == self._ref.revision)
 
+    @monitor_results
     def package_exists(self, pref):
         # used only for Remover, to check if package_id provided by users exists
         assert isinstance(pref, PackageReference)
@@ -210,10 +247,12 @@ class PackageCacheLayout(object):
                 os.path.exists(self.package(pref)) and
                 (not pref.revision or self.package_revision(pref) == pref.revision))
 
+    @monitor_results
     def recipe_revision(self):
         metadata = self.load_metadata()
         return metadata.recipe.revision
 
+    @monitor_results
     def package_revision(self, pref):
         assert isinstance(pref, PackageReference)
         assert pref.ref.copy_clear_rev() == self._ref.copy_clear_rev()
@@ -222,6 +261,7 @@ class PackageCacheLayout(object):
             raise PackageNotFoundException(pref)
         return metadata.packages[pref.id].revision
 
+    @monitor_results
     def conan_builds(self):
         builds_dir = self.builds()
         try:
@@ -231,6 +271,7 @@ class PackageCacheLayout(object):
             builds = []
         return builds
 
+    @monitor_results
     def package_ids(self):
         """ get a list of all package_ids for this recipe
         """
@@ -243,6 +284,7 @@ class PackageCacheLayout(object):
         return packages
 
     # Metadata
+    @monitor_results
     def load_metadata(self):
         try:
             text = load(self.package_metadata())
