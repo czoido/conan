@@ -256,11 +256,10 @@ class SystemReqsTest(unittest.TestCase):
         client = TestClient()
         files = {'conanfile.py': base_conanfile.replace("%GLOBAL%", "")}
         client.save(files)
-        system_reqs_path = os.path.dirname(client.cache.package_layout(ref).system_reqs())
-
-        # create package to populate system_reqs folder
-        self.assertFalse(os.path.exists(system_reqs_path))
         client.run("create . user/channel")
+        latest_rrev = client.cache.get_latest_rrev(ref)
+        latest_prev = client.cache.get_latest_prev(latest_rrev)
+        system_reqs_path = client.cache.pkg_layout(latest_prev).system_reqs()
         self.assertIn("*+Running system requirements+*", client.out)
         self.assertTrue(os.path.exists(system_reqs_path))
 

@@ -259,8 +259,6 @@ def _handle_system_requirements(conan_file, pref, cache, out):
     package_layout = cache.pkg_layout(pref)
     system_reqs_path = package_layout.system_reqs()
     system_reqs_package_path = package_layout.system_reqs_package()
-    if os.path.exists(system_reqs_path) or os.path.exists(system_reqs_package_path):
-        return
 
     ret = call_system_requirements(conan_file, out)
 
@@ -273,6 +271,9 @@ def _handle_system_requirements(conan_file, pref, cache, out):
         save(system_reqs_path, ret)
     else:
         save(system_reqs_package_path, ret)
+    # TODO: cache2.0 this part should be refactored, returning package_layout to pass
+    #  to _handle_node_cache
+    return package_layout
 
 
 def call_system_requirements(conanfile, output):
@@ -444,8 +445,8 @@ class BinaryInstaller(object):
                         self._binaries_analyzer.reevaluate_node(node, remotes, build_mode, update)
                         if node.binary == BINARY_MISSING:
                             self._raise_missing([node])
-                    _handle_system_requirements(conan_file, node.pref, self._cache, output)
-                    self._handle_node_cache(node, processed_package_refs, remotes)
+                    pkg_layout = _handle_system_requirements(conan_file, node.pref, self._cache, output)
+                    self._handle_node_cache(node, processed_package_refs, remotes, pkg_layout)
 
         # Finally, propagate information to root node (ref=None)
         self._propagate_info(root_node)
@@ -505,13 +506,13 @@ class BinaryInstaller(object):
                 copied_files = run_imports(conanfile)
                 report_copied_files(copied_files, output)
 
-    def _handle_node_cache(self, node, processed_package_references, remotes):
+    def _handle_node_cache(self, node, processed_package_references, remotes, pkg_layout):
         pref = node.pref
         assert pref.id, "Package-ID without value"
         assert pref.id != PACKAGE_ID_UNKNOWN, "Package-ID error: %s" % str(pref)
         conanfile = node.conanfile
         output = conanfile.output
-        pkg_layout = self._cache.pkg_layout(pref)
+        pkg_layout = pkg_layout or self._cache.pkg_layout(pref)
         # TODO: cache2.0 Check with new locks
         # with layout.package_lock(pref):
         bare_pref = PackageReference(pref.ref, pref.id)
