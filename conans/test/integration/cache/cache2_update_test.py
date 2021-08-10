@@ -442,3 +442,33 @@ class TestUpdateFlows:
         assert "liba/1.2.0 from 'server2' - Downloaded" in self.client.out
         assert "liba/1.2.0: Retrieving package 5ab84d6acfe1f23c4fae0ab88f26e3a396351ac9 " \
                "from remote 'server2' " in self.client.out
+
+    def test_version_ranges_local_cache(self):
+        # in cache: libd/0.5
+        # remote: libd/1.0
+        # consumer ---> liba --> libd>0.1
+        #           |-> libb --> libd/1.0
+        #           |-> libc --> libd>0.1
+
+        self.client.save({"conanfile.py": GenConanfile("libd", "1.0")})
+        self.client.run("create .")
+        self._upload_ref_to_server("libd/1.0", "server0", self.client)
+
+        self.client.run("remove * -f")
+
+        self.client.save({"conanfile.py": GenConanfile("libd", "0.5")})
+        self.client.run("export .")
+
+        self.client.save({"conanfile.py": GenConanfile("liba", "1.0").with_require("libd/[>0.1]")})
+        self.client.run("export .")
+
+        self.client.save({"conanfile.py": GenConanfile("libb", "1.0").with_require("libd/1.0")})
+        self.client.run("export .")
+
+        self.client.save({"conanfile.py": GenConanfile("libc", "1.0").with_require("libd/[>0.1]")})
+        self.client.run("export .")
+
+        self.client.save({"conanfile.py": GenConanfile("consumer", "1.0").with_requires("liba/1.0",
+                                                                                        "libb/1.0",
+                                                                                        "libc/1.0")})
+        self.client.run("create . -r server0")
