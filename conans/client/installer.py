@@ -104,8 +104,7 @@ class _PackageBuilder(object):
         conanfile_path = recipe_layout.conanfile()
         source_folder = recipe_layout.source()
 
-        retrieve_exports_sources(self._remote_manager, self._cache, recipe_layout, conanfile,
-                                 pref.ref, remotes)
+        retrieve_exports_sources(recipe_layout, conanfile)
 
         conanfile.folders.set_base_source(source_folder)
         conanfile.folders.set_base_build(None)
@@ -543,8 +542,7 @@ class BinaryInstaller(object):
             for python_require in python_requires.values():
                 assert python_require.ref.revision is not None, \
                     "Installer should receive python_require.ref always"
-                retrieve_exports_sources(self._remote_manager, self._cache, pkg_layout,
-                                         python_require.conanfile, python_require.ref, remotes)
+                retrieve_exports_sources(pkg_layout, python_require.conanfile)
 
         builder = _PackageBuilder(self._cache, output, self._hook_manager, self._remote_manager,
                                   self._generator_manager)
