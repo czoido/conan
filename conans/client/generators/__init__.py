@@ -72,7 +72,7 @@ class GeneratorManager(object):
                                 "MesonToolchain", "MSBuildDeps", "QbsToolchain", "msbuild",
                                 "VirtualRunEnv", "VirtualBuildEnv", "AutotoolsDeps",
                                 "AutotoolsToolchain", "BazelDeps", "BazelToolchain", "PkgConfigDeps",
-                                "VCVars", "IntelCC", "XCodeDeps"]
+                                "VCVars", "IntelCC", "XCodeDeps", "XCodeToolchain"]
 
     def add(self, name, generator_class, custom=False):
         if name not in self._generators or custom:
@@ -140,6 +140,9 @@ class GeneratorManager(object):
         elif generator_name == "XCodeDeps":
             from conan.tools.apple import XcodeDeps
             return XcodeDeps
+        elif generator_name == "XCodeToolchain":
+            from conan.tools.apple import XCodeToolchain
+            return XCodeToolchain
         else:
             raise ConanException("Internal Conan error: Generator '{}' "
                                  "not commplete".format(generator_name))
