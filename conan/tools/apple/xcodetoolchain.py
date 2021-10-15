@@ -9,7 +9,7 @@ from conan.tools.gnu.get_gnu_triplet import _get_gnu_triplet
 from conans.tools import args_to_string
 
 
-class XCodeToolchain:
+class XcodeToolchain:
     def __init__(self, conanfile, namespace=None):
         self._conanfile = conanfile
         self._namespace = namespace
