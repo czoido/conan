@@ -15,16 +15,7 @@ class XcodeToolchain:
         self._namespace = namespace
         build_type = self._conanfile.settings.get_safe("build_type")
 
-        self.configure_args = []
-        self.make_args = []
-        self.default_configure_install_args = False
 
-        # TODO: compiler.runtime for Visual studio?
-        # defines
-        self.ndebug = None
-        if build_type in ['Release', 'RelWithDebInfo', 'MinSizeRel']:
-            self.ndebug = "NDEBUG"
-        self.gcc_cxx11_abi = self._cxx11_abi_define()
         self.defines = []
 
         # cxxflags, cflags
@@ -36,7 +27,7 @@ class XcodeToolchain:
 
         self.cppstd = cppstd_flag(self._conanfile.settings)
         self.arch_flag = architecture_flag(self._conanfile.settings)
-        # TODO: This is also covering compilers like Visual Studio, necessary to test it (&remove?)
+
         self.build_type_flags = build_type_flags(self._conanfile.settings)
 
         # Cross build
