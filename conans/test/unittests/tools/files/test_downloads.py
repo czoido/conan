@@ -7,9 +7,9 @@ from bottle import HTTPError, auth_basic, static_file
 from conan.tools.files import ftp_download, download, get
 from conans.client.tools import chdir
 from conans.errors import ConanException, AuthenticationException
-from conans.test.utils.mocks import ConanFileMock
+from conans.test.utils.mocks import ConanFileMock, RedirectedTestOutput
 from conans.test.utils.test_files import temp_folder
-from conans.test.utils.tools import StoppableThreadBottle
+from conans.test.utils.tools import StoppableThreadBottle, redirect_output
 from conans.util.files import save, load
 
 
@@ -92,12 +92,14 @@ class TestDownload:
         dest = os.path.join(temp_folder(), "manual.html")
         conanfile = ConanFileMock()
         conanfile._conan_requester = requests
-        download(conanfile, ["invalid",
-                             "http://localhost:%s/manual.html" % bottle_server.port], dest, retry=3,
-                 retry_wait=0)
+        output = RedirectedTestOutput()
+        with redirect_output(output):
+            download(conanfile, ["invalid",
+                                 "http://localhost:%s/manual.html" % bottle_server.port], dest,
+                     retry=3, retry_wait=0)
         content = load(dest)
         assert content == "this is some content"
-        assert "Trying another mirror." in str(conanfile.output)
+        assert "Trying another mirror." in str(output)
 
     def test_download_forbidden(self, bottle_server):
         dest = os.path.join(temp_folder(), "manual.html")
@@ -131,8 +133,10 @@ class TestDownload:
         conanfile._conan_requester = requests
         file_path = os.path.join(temp_folder(), "file.txt")
         with pytest.raises(ConanException):
-            download(conanfile, "http://fakeurl3.es/nonexists", file_path, retry=2, retry_wait=1)
-        assert str(conanfile.output).count("Waiting 1 seconds to retry...") == 2
+            output = RedirectedTestOutput()
+            with redirect_output(output):
+                download(conanfile, "http://fakeurl3.es/nonexists", file_path, retry=2, retry_wait=1)
+        assert str(output).count("Waiting 1 seconds to retry...") == 2
 
     def test_download_retries_500_errors(self, bottle_server):
         # 500 internal also retries
@@ -140,9 +144,11 @@ class TestDownload:
         conanfile._conan_requester = requests
         file_path = os.path.join(temp_folder(), "file.txt")
         with pytest.raises(ConanException):
-            download(conanfile, "http://localhost:%s/error_url" % bottle_server.port,
-                     file_path, retry=1, retry_wait=0)
-        assert str(conanfile.output).count("Waiting 0 seconds to retry...") == 1
+            output = RedirectedTestOutput()
+            with redirect_output(output):
+                download(conanfile, "http://localhost:%s/error_url" % bottle_server.port,
+                         file_path, retry=1, retry_wait=0)
+        assert str(output).count("Waiting 0 seconds to retry...") == 1
 
     def test_download_no_retries_errors(self, bottle_server):
         # Not found error will not retry

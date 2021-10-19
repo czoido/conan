@@ -7,7 +7,6 @@ import pytest
 import yaml
 from mock import Mock
 
-from conans.client.graph.python_requires import ConanPythonRequire
 from conans.client.loader import ConanFileLoader
 from conans.client.tools.env import environment_append
 from conans.model.ref import ConanFileReference
@@ -32,14 +31,13 @@ class SCMDataToConanDataTestCase(unittest.TestCase):
         """)
         t = TestClient()
         t.save({'conanfile.py': conanfile})
-        t.run("config set general.scm_to_conandata=1")
         t.run("export . name/version@")
 
         # Check exported files
-        package_layout = t.cache.package_layout(self.ref)
-        exported_conanfile = load(package_layout.conanfile())
+        ref_layout = t.get_latest_ref_layout(self.ref)
+        exported_conanfile = load(ref_layout.conanfile())
         self.assertEqual(exported_conanfile, conanfile)
-        exported_conandata = load(os.path.join(package_layout.export(), DATA_YML))
+        exported_conandata = load(ref_layout.conandata())
         conan_data = yaml.safe_load(exported_conandata)
         self.assertDictEqual(conan_data['.conan']['scm'],
                              {"type": "git", "url": "myurl", "revision": "myrev",
@@ -65,14 +63,13 @@ class SCMDataToConanDataTestCase(unittest.TestCase):
         """)
         t = TestClient()
         t.save({'conanfile.py': conanfile})
-        t.run("config set general.scm_to_conandata=1")
         t.run("export . name/version@")
 
         # Check exported files
-        package_layout = t.cache.package_layout(self.ref)
-        exported_conanfile = load(package_layout.conanfile())
+        ref_layout = t.get_latest_ref_layout(self.ref)
+        exported_conanfile = load(ref_layout.conanfile())
         self.assertEqual(exported_conanfile, conanfile)
-        exported_conandata = load(os.path.join(package_layout.export(), DATA_YML))
+        exported_conandata = load(ref_layout.conandata())
         conan_data = yaml.safe_load(exported_conandata)
         self.assertDictEqual(conan_data['.conan']['scm'], {"type": "git", "url": 'weir"d',
                                                            "revision": 123, "subfolder": "weir\"d",
@@ -98,14 +95,13 @@ class SCMDataToConanDataTestCase(unittest.TestCase):
         t = TestClient()
         commit = t.init_git_repo({'conanfile.py': conanfile})
         t.run_command('git remote add origin https://myrepo.com.git')
-        t.run("config set general.scm_to_conandata=1")
         t.run("export . name/version@")
 
         # Check exported files
-        package_layout = t.cache.package_layout(self.ref)
-        exported_conanfile = load(package_layout.conanfile())
+        ref_layout = t.get_latest_ref_layout(self.ref)
+        exported_conanfile = load(ref_layout.conanfile())
         self.assertEqual(exported_conanfile, conanfile)
-        exported_conandata = load(os.path.join(package_layout.export(), DATA_YML))
+        exported_conandata = load(ref_layout.conandata())
         conan_data = yaml.safe_load(exported_conandata)
         self.assertDictEqual(conan_data['.conan']['scm'],
                              {"type": "git", "url": 'https://myrepo.com.git', "revision": commit})
@@ -129,11 +125,7 @@ class SCMDataToConanDataTestCase(unittest.TestCase):
         t.save({'conanfile.py': conanfile,
                 DATA_YML: yaml.safe_dump({'.conan': {'scm_data': {}}}, default_flow_style=False)})
 
-        # Without activating the behavior, it works
-        t.run("export . name/version@")
-
         # It fails with it activated
-        t.run("config set general.scm_to_conandata=1")
         t.run("export . name/version@", assert_error=True)
         self.assertIn("ERROR: Field '.conan' inside 'conandata.yml' file is"
                       " reserved to Conan usage.", t.out)
@@ -151,22 +143,20 @@ class SCMDataToConanDataTestCase(unittest.TestCase):
         commit = t.init_git_repo({'conanfile.py': conanfile,
                                   'conandata.yml': ""})
         t.run_command('git remote add origin https://myrepo.com.git')
-        t.run("config set general.scm_to_conandata=1")
         t.run("export . name/version@")
 
         # Check exported files
-        package_layout = t.cache.package_layout(self.ref)
-        exported_conanfile = load(package_layout.conanfile())
+        ref_layout = t.get_latest_ref_layout(self.ref)
+        exported_conanfile = load(ref_layout.conanfile())
         self.assertEqual(exported_conanfile, conanfile)
-        exported_conandata = load(os.path.join(package_layout.export(), DATA_YML))
+        exported_conandata = load(ref_layout.conandata())
         conan_data = yaml.safe_load(exported_conandata)
         self.assertDictEqual(conan_data['.conan']['scm'],
                              {"type": "git", "url": 'https://myrepo.com.git', "revision": commit})
 
 
 class ParseSCMFromConanDataTestCase(unittest.TestCase):
-    loader = ConanFileLoader(runner=None, output=Mock(),
-                             python_requires=ConanPythonRequire(None, None))
+    loader = ConanFileLoader(runner=None)
 
     def test_parse_data(self):
         conanfile = textwrap.dedent("""
@@ -209,16 +199,14 @@ def test_auto_can_be_automated():
     commit = t.init_git_repo({'conanfile.py': conanfile,
                               'conandata.yml': ""})
     t.run_command('git remote add origin https://myrepo.com.git')
-    t.run("config set general.scm_to_conandata=1")
     t.run("export . pkg/1.0@")
 
     def _check(client):
         # Check exported files
         ref = ConanFileReference.loads("pkg/1.0")
-        package_layout = client.cache.package_layout(ref)
-        exported_conanfile = load(package_layout.conanfile())
-        assert exported_conanfile == conanfile
-        exported_conandata = load(os.path.join(package_layout.export(), DATA_YML))
+        ref_layout = client.get_latest_ref_layout(ref)
+        assert load(ref_layout.conanfile()) == conanfile
+        exported_conandata = load(ref_layout.conandata())
         conan_data = yaml.safe_load(exported_conandata)
         assert conan_data['.conan']['scm'] == {"type": "git",
                                                "url": 'https://myrepo.com.git',
@@ -228,14 +216,13 @@ def test_auto_can_be_automated():
 
     # Now try from another folder, doing a copy and using the env-vars
     t = TestClient(default_server_user=True)
-    t.run("config set general.scm_to_conandata=1")
     t.save({"conanfile.py": conanfile})
     with environment_append({"USER_EXTERNAL_URL": "https://myrepo.com.git",
                              "USER_EXTERNAL_COMMIT": commit}):
         t.run("export . pkg/1.0@")
     _check(t)
 
-    t.run("upload * -c")
+    t.run("upload * -c -r default")
     t.run("remove * -f")
     t.run("install pkg/1.0@ --build", assert_error=True)
     assert "pkg/1.0: SCM: Getting sources from url: 'https://myrepo.com.git'" in t.out
@@ -243,5 +230,4 @@ def test_auto_can_be_automated():
     with environment_append({"USER_EXTERNAL_URL": "https://other.different.url",
                              "USER_EXTERNAL_COMMIT": "invalid commit"}):
         t.run("install pkg/1.0@ --build", assert_error=True)
-        print(t.out)
         assert "pkg/1.0: SCM: Getting sources from url: 'https://myrepo.com.git'" in t.out

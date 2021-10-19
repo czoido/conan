@@ -106,7 +106,8 @@ def test_patch(mock_patch_ng):
     client.save({"conanfile.py": conanfile})
     client.run('create .')
 
-    assert os.path.exists(mock_patch_ng.apply_args[0])
+    # Note: This cannot exist anymore, because the path is moved when prev is computed
+    # assert os.path.exists(mock_patch_ng.apply_args[0])
     assert mock_patch_ng.apply_args[1:] == (0, False)
     assert 'mypkg/1.0: Apply patch (security)' in str(client.out)
 

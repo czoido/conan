@@ -3,24 +3,34 @@ from collections import OrderedDict
 
 from conans.client.graph.graph import BINARY_SKIP, RECIPE_CONSUMER, RECIPE_VIRTUAL,\
     RECIPE_EDITABLE
-from conans.client.output import Color
+from conans.cli.output import Color, ConanOutput
 from conans.model.ref import PackageReference
 
 
 def _get_python_requires(conanfile):
     result = set()
     python_requires = getattr(conanfile, "python_requires", None)
-    if isinstance(python_requires, dict):  # Old python requires
-        for _, py_require in python_requires.items():
-            result.add(py_require.ref)
-            result.update(_get_python_requires(py_require.conanfile))
-    elif python_requires:
+    if python_requires:
         result.update(conanfile.python_requires.all_refs())
-
     return result
 
 
-def print_graph(deps_graph, out):
+def _print_deprecated(deps_graph):
+    out = ConanOutput()
+    deprecated = {}
+    for node in deps_graph.nodes:
+        if node.conanfile.deprecated:
+            deprecated[node.ref] = node.conanfile.deprecated
+
+    if deprecated:
+        out.info("Deprecated", Color.BRIGHT_YELLOW)
+        for d, reason in deprecated.items():
+            reason = " in favor of '{}'".format(reason) if isinstance(reason, str) else ""
+            out.info("    {}{}".format(d, reason), Color.BRIGHT_CYAN)
+
+
+def print_graph(deps_graph):
+    out = ConanOutput()
     requires = OrderedDict()
     build_requires = OrderedDict()
     python_requires = set()
@@ -35,7 +45,7 @@ def print_graph(deps_graph, out):
         else:
             requires.setdefault(pref, []).append(node)
 
-    out.writeln("Requirements", Color.BRIGHT_YELLOW)
+    out.info("Requirements", Color.BRIGHT_YELLOW)
 
     def _recipes(nodes):
         for _, list_nodes in nodes.items():
@@ -45,15 +55,15 @@ def print_graph(deps_graph, out):
             else:
                 from_text = ("from local cache" if not node.remote
                              else "from '%s'" % node.remote.name)
-            out.writeln("    %s %s - %s" % (str(node.ref), from_text, node.recipe),
+            out.info("    %s %s - %s" % (str(node.ref), from_text, node.recipe),
                         Color.BRIGHT_CYAN)
 
     _recipes(requires)
     if python_requires:
-        out.writeln("Python requires", Color.BRIGHT_YELLOW)
+        out.info("Python requires", Color.BRIGHT_YELLOW)
         for p in python_requires:
-            out.writeln("    %s" % repr(p.copy_clear_rev()), Color.BRIGHT_CYAN)
-    out.writeln("Packages", Color.BRIGHT_YELLOW)
+            out.info("    %s" % repr(p.copy_clear_rev()), Color.BRIGHT_CYAN)
+    out.info("Packages", Color.BRIGHT_YELLOW)
 
     def _packages(nodes):
         for package_id, list_nodes in nodes.items():
@@ -64,13 +74,15 @@ def print_graph(deps_graph, out):
                 binary.remove(BINARY_SKIP)
             assert len(binary) == 1
             binary = binary.pop()
-            out.writeln("    %s - %s" % (str(package_id), binary), Color.BRIGHT_CYAN)
+            out.info("    %s - %s" % (str(package_id), binary), Color.BRIGHT_CYAN)
     _packages(requires)
 
     if build_requires:
-        out.writeln("Build requirements", Color.BRIGHT_YELLOW)
+        out.info("Build requirements", Color.BRIGHT_YELLOW)
         _recipes(build_requires)
-        out.writeln("Build requirements packages", Color.BRIGHT_YELLOW)
+        out.info("Build requirements packages", Color.BRIGHT_YELLOW)
         _packages(build_requires)
+
+    _print_deprecated(deps_graph)
 
     out.writeln("")

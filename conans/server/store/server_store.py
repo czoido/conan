@@ -67,12 +67,6 @@ class ServerStore(object):
         assert isinstance(ref, ConanFileReference)
         return self._get_snapshot_of_files(self.export(ref))
 
-    def get_package_snapshot(self, pref):
-        """Returns a {filepath: md5} """
-        assert isinstance(pref, PackageReference)
-        path = self.package(pref)
-        return self._get_snapshot_of_files(path)
-
     def _get_snapshot_of_files(self, relative_path):
         snapshot = self._storage_adapter.get_snapshot(relative_path)
         snapshot = self._relativize_keys(snapshot, relative_path)
@@ -235,7 +229,7 @@ class ServerStore(object):
         rev_file_path = self._recipe_revisions_file(ref)
         revs = self._get_revisions_list(rev_file_path).as_list()
         if not revs:
-            raise RecipeNotFoundException(ref, print_rev=True)
+            raise RecipeNotFoundException(ref)
         return revs
 
     def get_last_package_revision(self, pref):
@@ -277,7 +271,7 @@ class ServerStore(object):
         tmp = self._package_revisions_file(pref)
         ret = self._get_revisions_list(tmp).as_list()
         if not ret:
-            raise PackageNotFoundException(pref, print_rev=True)
+            raise PackageNotFoundException(pref)
         return ret
 
     def _get_revisions_list(self, rev_file_path):

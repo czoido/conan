@@ -127,9 +127,8 @@ class Base(unittest.TestCase):
         # Run the configure corresponding to this test case
         build_directory = os.path.join(self.client.current_folder, "build").replace("\\", "/")
         with self.client.chdir(build_directory):
-            self.client.run("install .. %s %s" % (settings, options))
+            self.client.run("build .. %s %s" % (settings, options))
             install_out = self.client.out
-            self.client.run("build ..")
         return install_out
 
     def _modify_code(self):
@@ -532,7 +531,6 @@ class CMakeInstallTest(unittest.TestCase):
         # folder yet. We need to define the layout for local development
         """
         with client.chdir("build"):
-            client.run("install ..")
             client.run("build ..")
             client.run("package .. -pf=mypkg")  # -pf=mypkg ignored
         self.assertTrue(os.path.exists(os.path.join(client.current_folder, "build",
@@ -542,9 +540,8 @@ class CMakeInstallTest(unittest.TestCase):
         client.run("create . pkg/0.1@")
         self.assertIn("pkg/0.1 package(): Packaged 1 '.h' file: header.h", client.out)
         ref = ConanFileReference.loads("pkg/0.1")
-        layout = client.cache.package_layout(ref)
-        package_id = layout.package_ids()[0]
-        package_folder = layout.package(PackageReference(ref, package_id))
+        pref = client.get_latest_prev(ref)
+        package_folder = client.get_latest_pkg_layout(pref).package()
         self.assertTrue(os.path.exists(os.path.join(package_folder, "include", "header.h")))
 
 
@@ -577,7 +574,6 @@ class CMakeOverrideCacheTest(unittest.TestCase):
         client = TestClient()
         client.save({"conanfile.py": conanfile,
                      "CMakeLists.txt": cmakelist})
-        client.run("install .")
         client.run("build .")
         self.assertIn("VALUE OF CONFIG STRING: my new value", client.out)
 
@@ -622,14 +618,11 @@ class TestCMakeFindPackagePreferConfig:
                      "profile_true": profile.format(True),
                      "profile_false": profile.format(False)})
 
-        client.run("install .")
         client.run("build .")
         assert "using ComandanteConfig.cmake" in client.out
 
-        client.run("install . --profile=profile_true")
-        client.run("build .")
+        client.run("build . --profile=profile_true")
         assert "using ComandanteConfig.cmake" in client.out
 
-        client.run("install . --profile=profile_false")
-        client.run("build .")
+        client.run("build . --profile=profile_false")
         assert "using FindComandante.cmake" in client.out

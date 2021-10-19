@@ -59,7 +59,6 @@ class {package_name}TestConan(ConanFile):
     # VirtualBuildEnv and VirtualRunEnv can be avoided if "tools.env.virtualenv:auto_use" is defined
     # (it will be defined in Conan 2.0)
     generators = "CMakeDeps", "CMakeToolchain", "VirtualBuildEnv", "VirtualRunEnv"
-    apply_env = False
 
     def build(self):
         cmake = CMake(self)

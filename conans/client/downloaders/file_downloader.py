@@ -3,8 +3,7 @@ import re
 import time
 import traceback
 
-import six
-
+from conans.cli.output import ConanOutput
 from conans.client.rest import response_to_str
 from conans.client.tools.files import check_md5, check_sha1, check_sha256
 from conans.errors import ConanException, NotFoundException, AuthenticationException, \
@@ -26,8 +25,8 @@ def check_checksum(file_path, md5, sha1, sha256):
 
 class FileDownloader(object):
 
-    def __init__(self, requester, output, verify, config_retry, config_retry_wait):
-        self._output = output
+    def __init__(self, requester,  verify, config_retry, config_retry_wait):
+        self._output = ConanOutput()
         self._requester = requester
         self._verify_ssl = verify
         self._config_retry = config_retry
@@ -46,7 +45,7 @@ class FileDownloader(object):
         if file_path and os.path.exists(file_path):
             if overwrite:
                 if self._output:
-                    self._output.warn("file '%s' already exists, overwriting" % file_path)
+                    self._output.warning("file '%s' already exists, overwriting" % file_path)
             else:
                 # Should not happen, better to raise, probably we had to remove
                 # the dest folder before
@@ -102,8 +101,7 @@ class FileDownloader(object):
                 mode = "ab" if range_start else "wb"
                 with open(path, mode) as file_handler:
                     for chunk in chunks:
-                        assert ((six.PY3 and isinstance(chunk, bytes)) or
-                                (six.PY2 and isinstance(chunk, str)))
+                        assert isinstance(chunk, bytes)
                         file_handler.write(chunk)
                         downloaded_size += len(chunk)
             else:
@@ -131,7 +129,7 @@ class FileDownloader(object):
             total_length = get_total_length()
             action = "Downloading" if range_start == 0 else "Continuing download of"
             description = "{} {}".format(action, os.path.basename(file_path)) if file_path else None
-            progress = progress_bar.Progress(total_length, self._output, description)
+            progress = progress_bar.Progress(total_length, description)
             progress.initial_value(range_start)
 
             chunk_size = 1024 if not file_path else 1024 * 100

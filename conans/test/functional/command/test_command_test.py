@@ -6,6 +6,7 @@ import pytest
 from conans.test.utils.tools import TestClient
 
 
+@pytest.mark.xfail(reason="cmake old generator will be removed")
 @pytest.mark.slow
 class ConanTestTest(unittest.TestCase):
 
@@ -19,7 +20,6 @@ class ConanTestTest(unittest.TestCase):
         client.run("test test_package hello/0.1@lasote/stable -s build_type=Release")
         self.assertIn('hello/0.1: Hello World Release!', client.out)
 
-        self.assertNotIn("WARN: conanbuildinfo.txt file not found", client.out)
         self.assertNotIn("WARN: conanenv.txt file not found", client.out)
 
         client.run("test test_package hello/0.1@lasote/stable -s hello:build_type=Debug "

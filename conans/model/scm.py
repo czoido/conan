@@ -1,8 +1,6 @@
 import os
 import subprocess
 
-from six import string_types
-
 from conans.client.tools.scm import Git, SVN
 from conans.errors import ConanException
 from conans.util.files import rmdir
@@ -36,15 +34,15 @@ class SCMData(object):
 
     def __init__(self, conanfile):
         data = getattr(conanfile, "scm")
-        self.type = _get_dict_value(data, "type", string_types)
-        self.url = _get_dict_value(data, "url", string_types)
-        self.revision = _get_dict_value(data, "revision", string_types + (int,),
+        self.type = _get_dict_value(data, "type", str)
+        self.url = _get_dict_value(data, "url", str)
+        self.revision = _get_dict_value(data, "revision", (str, int),
                                         disallowed_type=bool)  # bool is subclass of integer
         self.verify_ssl = _get_dict_value(data, "verify_ssl", bool, SCMData.VERIFY_SSL_DEFAULT)
-        self.username = _get_dict_value(data, "username", string_types)
-        self.password = _get_dict_value(data, "password", string_types)
-        self.subfolder = _get_dict_value(data, "subfolder", string_types)
-        self.submodule = _get_dict_value(data, "submodule", string_types)
+        self.username = _get_dict_value(data, "username", str)
+        self.password = _get_dict_value(data, "password", str)
+        self.subfolder = _get_dict_value(data, "subfolder", str)
+        self.submodule = _get_dict_value(data, "submodule", str)
         self.shallow = _get_dict_value(data, "shallow", bool, SCMData.SHALLOW_DEFAULT)
 
     @property
@@ -91,9 +89,9 @@ class SCMData(object):
 class SCM(object):
     availables = {'git': Git, 'svn': SVN}
 
-    def __init__(self, data, repo_folder, output):
+    def __init__(self, data, repo_folder, scoped_output):
         self._data = data
-        self._output = output
+        self._scoped_output = scoped_output
         self.repo_folder = repo_folder
         # Finally instance a repo
         self.repo = self._get_repo()
@@ -115,7 +113,7 @@ class SCM(object):
 
         return repo_class(folder=self.repo_folder, verify_ssl=self._data.verify_ssl,
                           username=self._data.username, password=self._data.password,
-                          output=self._output)
+                          scoped_output=self._scoped_output)
 
     @property
     def excluded_files(self):
@@ -192,7 +190,7 @@ class SCM(object):
         if self._data.type == "git":
             return src_root
 
-        url_root = SCM(self._data, src_root, self._output).get_remote_url(remove_credentials=True)
+        url_root = SCM(self._data, src_root, self._scoped_output).get_remote_url(remove_credentials=True)
         if url_root:
             url = self.clean_url(url)
             src_path = os.path.join(src_root, os.path.relpath(url, url_root))

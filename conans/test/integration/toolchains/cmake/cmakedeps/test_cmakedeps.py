@@ -13,7 +13,7 @@ def test_package_from_system():
     https://github.com/conan-io/conan/issues/8919"""
     client = TestClient()
     dep2 = str(GenConanfile().with_name("dep2").with_version("1.0")
-               .with_settings("os", "arch", "build_type", "compiler"))
+               .with_settings("os", "arch", "build_type"))
     dep2 += """
     def package_info(self):
         self.cpp_info.set_property("cmake_find_mode", "None")
@@ -24,13 +24,13 @@ def test_package_from_system():
     client.run("create .")
 
     dep1 = GenConanfile().with_name("dep1").with_version("1.0").with_require("dep2/1.0")\
-                         .with_settings("os", "arch", "build_type", "compiler")
+                         .with_settings("os", "arch", "build_type")
     client.save({"conanfile.py": dep1})
     client.run("create .")
 
     consumer = GenConanfile().with_name("consumer").with_version("1.0").\
         with_require("dep1/1.0").with_generator("CMakeDeps").\
-        with_settings("os", "arch", "build_type", "compiler")
+        with_settings("os", "arch", "build_type")
     client.save({"conanfile.py": consumer})
     client.run("install .")
     assert os.path.exists(os.path.join(client.current_folder, "dep1-config.cmake"))
@@ -47,7 +47,7 @@ def test_test_package():
     client.run("create . cmake/1.0@")
 
     client.save({"conanfile.py": GenConanfile().with_build_requires("cmake/1.0").
-                with_build_requirement("gtest/1.0", force_host_context=True)})
+                with_test_requires("gtest/1.0")})
 
     client.run("export . pkg/1.0@")
 
@@ -59,7 +59,8 @@ def test_test_package():
             requires = "pkg/1.0"
         """)
     client.save({"conanfile.py": consumer})
-    client.run("install . -s:b os=Windows -s:h os=Linux --build=missing")
+    client.run("install . -s:b os=Windows -s:h os=Linux -s:h compiler=gcc -s:h compiler.version=7 "
+               "-s:h compiler.libcxx=libstdc++11 --build=missing")
     cmake_data = client.load("pkg-release-x86_64-data.cmake")
     assert "gtest" not in cmake_data
 
@@ -74,7 +75,7 @@ def test_components_error():
 
         from conan.tools.files import save
         class Pkg(ConanFile):
-            settings = "os", "arch", "compiler", "build_type"
+            settings = "os"
 
             def layout(self):
                 pass

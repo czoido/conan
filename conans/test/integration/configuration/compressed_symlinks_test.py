@@ -14,7 +14,7 @@ class CompressSymlinksZeroSize(unittest.TestCase):
     @pytest.mark.skipif(platform.system() != "Linux", reason="Only linux")
     def test_package_symlinks_zero_size(self):
         server = TestServer()
-        client = TurboTestClient(servers={"default": server})
+        client = TurboTestClient(servers={"default": server}, inputs=["admin", "password"])
 
         conanfile = """
 import os
@@ -30,11 +30,12 @@ class HelloConan(ConanFile):
         ref = ConanFileReference.loads("lib/1.0@conan/stable")
         # By default it is not allowed
         pref = client.create(ref, conanfile=conanfile)
+        client.create(ref, conanfile=conanfile)
         # Upload, it will create the tgz
         client.upload_all(ref)
 
         # We can uncompress it without warns
-        p_folder = client.cache.package_layout(pref.ref).download_package(pref)
+        p_folder = client.get_latest_pkg_layout(pref).download_package()
         tgz = os.path.join(p_folder, PACKAGE_TGZ_NAME)
         client.run_command('gzip -d "{}"'.format(tgz))
         client.run_command('tar tvf "{}"'.format(os.path.join(p_folder, "conan_package.tar")))

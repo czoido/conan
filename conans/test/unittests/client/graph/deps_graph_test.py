@@ -19,8 +19,8 @@ class DepsGraphTest(unittest.TestCase):
         ref1 = ConanFileReference.loads("Hello/0.1@user/stable")
         ref2 = ConanFileReference.loads("Hello/0.1@user/stable")
 
-        conanfile1 = ConanFile(Mock(), None)
-        conanfile2 = ConanFile(Mock(), None)
+        conanfile1 = ConanFile(None)
+        conanfile2 = ConanFile(None)
         n1 = Node(ref1, conanfile1, context=CONTEXT_HOST)
         n2 = Node(ref2, conanfile2, context=CONTEXT_HOST)
 
@@ -85,7 +85,7 @@ class DepsGraphTest(unittest.TestCase):
         deps.add_edge(n1, n5, None)
         deps.add_edge(n2, n31, None)
         deps.add_edge(n2, n32, None)
-        self.assertEqual([[n5, n31, n32], [n2], [n1]], deps.by_levels())
+        self.assertEqual([[n31, n32, n5], [n2], [n1]], deps.by_levels())
 
     def test_multi_levels_3(self):
 
@@ -111,4 +111,4 @@ class DepsGraphTest(unittest.TestCase):
         deps.add_edge(n2, n31, None)
         deps.add_edge(n2, n32, None)
         deps.add_edge(n32, n5, None)
-        self.assertEqual([[n5, n31], [n32], [n2], [n1]], deps.by_levels())
+        self.assertEqual([[n31, n5], [n32], [n2], [n1]], deps.by_levels())

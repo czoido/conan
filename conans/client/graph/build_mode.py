@@ -1,5 +1,6 @@
 import fnmatch
 
+from conans.cli.output import ConanOutput
 from conans.errors import ConanException
 
 
@@ -9,12 +10,9 @@ class BuildMode(object):
                    => ["hello/0.1@foo/bar"] if user wrote "--build hello/0.1@foo/bar"
                    => False if user wrote "never"
                    => True if user wrote "missing"
-                   => "outdated" if user wrote "--build outdated"
                    => ["!foo"] means exclude when building all from sources
     """
-    def __init__(self, params, output):
-        self._out = output
-        self.outdated = False
+    def __init__(self, params):
         self.missing = False
         self.never = False
         self.cascade = False
@@ -30,9 +28,7 @@ class BuildMode(object):
             self.all = True
         else:
             for param in params:
-                if param == "outdated":
-                    self.outdated = True
-                elif param == "missing":
+                if param == "missing":
                     self.missing = True
                 elif param == "never":
                     self.never = True
@@ -47,7 +43,7 @@ class BuildMode(object):
                     else:
                         self.patterns.append(clean_pattern)
 
-            if self.never and (self.outdated or self.missing or self.patterns or self.cascade):
+            if self.never and (self.missing or self.patterns or self.cascade):
                 raise ConanException("--build=never not compatible with other options")
         self._unused_patterns = list(self.patterns) + self._excluded_patterns
 
@@ -93,7 +89,7 @@ class BuildMode(object):
         return False
 
     def allowed(self, conan_file):
-        if self.missing or self.outdated:
+        if self.missing:
             return True
         if conan_file.build_policy_missing:
             conan_file.output.info("Building package from source as defined by "
@@ -103,4 +99,4 @@ class BuildMode(object):
 
     def report_matches(self):
         for pattern in self._unused_patterns:
-            self._out.error("No package matching '%s' pattern found." % pattern)
+            ConanOutput().error("No package matching '%s' pattern found." % pattern)

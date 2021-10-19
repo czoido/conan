@@ -2,11 +2,14 @@ import unittest
 
 import mock
 import textwrap
+
+import pytest
 from parameterized import parameterized
 
 from conans.test.utils.tools import NO_SETTINGS_PACKAGE_ID, TestClient, TestServer
 
 
+@pytest.mark.xfail(reason="cache2.0 get not yet considered")
 class ConanGetTest(unittest.TestCase):
 
     def setUp(self):
@@ -23,7 +26,7 @@ class ConanGetTest(unittest.TestCase):
 
         test_server = TestServer([], users={"lasote": "mypass"})
         servers = {"default": test_server}
-        self.client = TestClient(servers=servers, users={"default": [("lasote", "mypass")]})
+        self.client = TestClient(servers=servers, inputs=["lasote", "mypass"])
         files = {"conanfile.py": self.conanfile,
                  "path/to/exported_source": "1",
                  "other/path/to/exported": "2"}
@@ -92,9 +95,6 @@ class ConanGetTest(unittest.TestCase):
             [full_options]
 
 
-            [recipe_hash]
-                07e4bf611af374672215a94d84146e2d
-
             """), self.client.out)
 
         # List package dir
@@ -103,7 +103,7 @@ class ConanGetTest(unittest.TestCase):
         assert_cmp("conaninfo.txt\nconanmanifest.txt\n", self.client.out)
 
     def test_get_remote_reference(self):
-        self.client.run('upload "Hello*" --all -c')
+        self.client.run('upload "Hello*" --all -c -r default')
 
         # Remote search, dir list
         self.client.run('get {} . -r default --raw'.format(self.reference))
@@ -120,7 +120,7 @@ class ConanGetTest(unittest.TestCase):
             "{}:{}".format(self.reference, NO_SETTINGS_PACKAGE_ID)
         args_package = " -p {}".format(NO_SETTINGS_PACKAGE_ID) if not use_pkg_reference else ""
 
-        self.client.run('upload "Hello*" --all -c')
+        self.client.run('upload "Hello*" --all -c -r default')
 
         # List package dir
         self.client.run('get {} "." {} --raw -r default'.format(args_reference, args_package))
@@ -143,14 +143,9 @@ class ConanGetTest(unittest.TestCase):
 
         self.client.run('get {} "." -r default {}'.format(args_reference, args_package),
                         assert_error=True)
-        if self.client.cache.config.revisions_enabled:
-            # It has to resolve the latest so it fails again with the recipe
-            self.assertIn("ERROR: Recipe not found: '{}'. [Remote: default]".format(self.reference),
-                          self.client.out)
-        else:
-            self.assertIn("ERROR: Binary package not found: "
-                          "'Hello0/0.1@lasote/channel:123123123123123'. "
-                          "[Remote: default]", self.client.out)
+        # It has to resolve the latest so it fails again with the recipe
+        self.assertIn("ERROR: Recipe not found: '{}'. [Remote: default]".format(self.reference),
+                      self.client.out)
 
     def test_duplicated_input(self):
         """ Fail if given the full reference and the `-p` argument (even if they are equal)"""

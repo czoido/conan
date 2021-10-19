@@ -268,7 +268,7 @@ class MSBuildDeps(object):
         return content_multi
 
     def _content(self):
-        # We cannot use self._conanfile.warn(), because that fails for virtual conanfile
+        # We cannot use self._conanfile.warning(), because that fails for virtual conanfile
         print("*** The 'msbuild' generator is EXPERIMENTAL ***")
         if not self._conanfile.settings.get_safe("build_type"):
             raise ConanException("The 'msbuild' generator requires a 'build_type' setting value")
@@ -283,7 +283,7 @@ class MSBuildDeps(object):
         for dep in host_req + test_req:
             dep_name = dep.ref.name
             dep_name = dep_name.replace(".", "_")
-            cpp_info = dep.new_cpp_info.copy()
+            cpp_info = dep.cpp_info.copy()
             cpp_info.aggregate_components()
             public_deps = [d.ref.name.replace(".", "_")
                            for r, d in dep.dependencies.direct_host.items() if r.visible]
@@ -302,7 +302,7 @@ class MSBuildDeps(object):
         for dep in build_req:
             dep_name = dep.ref.name
             dep_name = dep_name.replace(".", "_") + "_build"
-            cpp_info = dep.new_cpp_info.copy()
+            cpp_info = dep.cpp_info.copy()
             cpp_info.aggregate_components()
             public_deps = [d.ref.name.replace(".", "_")
                            for r, d in dep.dependencies.direct_host.items() if r.visible]

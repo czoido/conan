@@ -1,45 +1,31 @@
+from conans.client.tools import no_op
 from conans.errors import conanfile_exception_formatter
-from conans.model.conan_file import get_env_context_manager
-from conans.util.conan_v2_mode import conan_v2_error
-from conans.util.misc import make_tuple
+from conans.model.pkg_type import PackageType
+from conans.model.requires import BuildRequirements, TestRequirements
 
 
 def run_configure_method(conanfile, down_options, down_ref, ref):
     """ Run all the config-related functions for the given conanfile object """
 
     # Avoid extra time manipulating the sys.path for python
-    with get_env_context_manager(conanfile, without_python=True):
-        if hasattr(conanfile, "config"):
-            conan_v2_error("config() has been deprecated. Use config_options() and configure()")
-            with conanfile_exception_formatter(str(conanfile), "config"):
-                conanfile.config()
-
+    with no_op():  # TODO: Remove this in a later refactor
         with conanfile_exception_formatter(str(conanfile), "config_options"):
             conanfile.config_options()
 
         conanfile.options.propagate_upstream(down_options, down_ref, ref)
 
-        if hasattr(conanfile, "config"):
-            with conanfile_exception_formatter(str(conanfile), "config"):
-                conanfile.config()
-
         with conanfile_exception_formatter(str(conanfile), "configure"):
             conanfile.configure()
 
-        conanfile.settings.validate()  # All has to be ok!
-        conanfile.options.validate()
-        # Recipe provides its own name if nothing else is defined
-        conanfile.provides = make_tuple(conanfile.provides or conanfile.name)
+        PackageType.compute_package_type(conanfile)
 
-        if conanfile.deprecated:
-            from six import string_types
-            message = "Recipe '%s' is deprecated" % conanfile.display_name
-            if isinstance(conanfile.deprecated, string_types):
-                message += " in favor of '%s'" % conanfile.deprecated
-            message += ". Please, consider changing your requirements."
-            conanfile.output.warn(message)
+        if hasattr(conanfile, "requirements"):
+            with conanfile_exception_formatter(str(conanfile), "requirements"):
+                conanfile.requirements()
 
-        # Once the node is configured call the layout()
-        if hasattr(conanfile, "layout"):
-            with conanfile_exception_formatter(str(conanfile), "layout"):
-                conanfile.layout()
+        # TODO: Maybe this could be integrated in one single requirements() method
+        if hasattr(conanfile, "build_requirements"):
+            with conanfile_exception_formatter(str(conanfile), "build_requirements"):
+                conanfile.build_requires = BuildRequirements(conanfile.requires)
+                conanfile.test_requires = TestRequirements(conanfile.requires)
+                conanfile.build_requirements()

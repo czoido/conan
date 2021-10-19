@@ -1,29 +1,24 @@
 # coding=utf-8
 
-import os
 import unittest
 
-from six import StringIO
+import pytest
 
 from conans.client.cache.cache import ClientCache
-from conans.client.output import ConanOutput
 from conans.client.tools import environment_append
-from conans.model.package_metadata import PackageMetadata
 from conans.model.ref import ConanFileReference, PackageReference
 from conans.test.utils.test_files import temp_folder
 from conans.util.files import mkdir
-from conans.util.files import save
 
 
 class CacheTest(unittest.TestCase):
 
     def setUp(self):
         tmp_dir = temp_folder()
-        stream = StringIO()
-        output = ConanOutput(stream)
-        self.cache = ClientCache(tmp_dir, output)
+        self.cache = ClientCache(tmp_dir)
         self.ref = ConanFileReference.loads("lib/1.0@conan/stable")
 
+    @pytest.mark.xfail(reason="cache2.0")
     def test_recipe_exists(self):
         layout = self.cache.package_layout(self.ref)
         self.assertFalse(layout.recipe_exists())
@@ -45,6 +40,7 @@ class CacheTest(unittest.TestCase):
 
         self.assertTrue(layout2.recipe_exists())
 
+    @pytest.mark.xfail(reason="cache2.0")
     def test_package_exists(self):
         pref = PackageReference(self.ref, "999")
         layout = self.cache.package_layout(self.ref)
@@ -52,8 +48,6 @@ class CacheTest(unittest.TestCase):
 
         mkdir(layout.export())
         mkdir(layout.package(pref))
-        save(os.path.join(self.cache.package_layout(self.ref).package_metadata()),
-             PackageMetadata().dumps())
 
         self.assertTrue(layout.package_exists(pref))
 

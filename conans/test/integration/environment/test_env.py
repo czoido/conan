@@ -7,7 +7,6 @@ import pytest
 from conan.tools.env.environment import environment_wrap_command
 from conans.test.utils.mocks import ConanFileMock
 from conans.test.utils.tools import TestClient, GenConanfile
-from conans.util.files import save
 
 
 @pytest.fixture()
@@ -18,6 +17,7 @@ def client():
         from conans.tools import save, chdir
         class Pkg(ConanFile):
             settings = "os"
+            package_type = "shared-library"
             def package(self):
                 with chdir(self.package_folder):
                     echo = "@echo off\necho MYOPENSSL={}!!".format(self.settings.os)
@@ -64,7 +64,6 @@ def client():
                 self.runenv_info.define("MYGTESTVAR", "MyGTestValue{}".format(self.settings.os))
             """)
     client = TestClient()
-    save(client.cache.new_config_path, "tools.env.virtualenv:auto_use=True")
     client.save({"cmake/conanfile.py": cmake,
                  "gtest/conanfile.py": gtest,
                  "openssl/conanfile.py": openssl})
@@ -89,10 +88,9 @@ def test_complete(client):
         class Pkg(ConanFile):
             requires = "openssl/1.0"
             build_requires = "mycmake/1.0"
-            apply_env = False
 
             def build_requirements(self):
-                self.build_requires("mygtest/1.0", force_host_context=True)
+                self.test_requires("mygtest/1.0")
 
             def build(self):
                 self.run("mycmake.bat", env="conanbuildenv")
@@ -119,7 +117,7 @@ def test_complete(client):
         assert "MYGTESTVAR=MyGTestValueLinux!!" in client.out
 
     if platform.system() == "Windows":
-        client.run("build .")
+        client.run("build . -s:h os=Linux")
         assert "MYCMAKE=Windows!!" in client.out
         assert "MYOPENSSL=Windows!!" in client.out
 
@@ -167,7 +165,6 @@ def test_profile_included_multiple():
 
 def test_profile_buildenv():
     client = TestClient()
-    save(client.cache.new_config_path, "tools.env.virtualenv:auto_use=True")
     conanfile = textwrap.dedent("""\
         import os, platform
         from conans import ConanFile
@@ -219,6 +216,10 @@ def test_profile_buildenv():
 
 
 def test_transitive_order():
+    # conanfile.py -(br)-> cmake -> openssl (unknown=static)
+    #     \                    \-(br)-> gcc
+    #      \--------(br)-> gcc
+    #       \---------------------> openssl
     gcc = textwrap.dedent(r"""
         from conans import ConanFile
         class Pkg(ConanFile):
@@ -230,6 +231,7 @@ def test_transitive_order():
         class Pkg(ConanFile):
             settings = "os"
             build_requires = "gcc/1.0"
+            package_type = "shared-library"
             def package_info(self):
                 self.runenv_info.append("MYVAR", "MyOpenSSL{}Value".format(self.settings.os))
         """)
@@ -265,13 +267,13 @@ def test_transitive_order():
         """)
     client.save({"conanfile.py": consumer}, clean_first=True)
     client.run("install . -s:b os=Windows -s:h os=Linux --build")
-    assert "BUILDENV: MyGCCValue MyOpenSSLWindowsValue "\
+    assert "BUILDENV: MyOpenSSLWindowsValue MyGCCValue "\
            "MyCMakeRunValue MyCMakeBuildValue!!!" in client.out
     assert "RUNENV: MyOpenSSLLinuxValue!!!" in client.out
 
     # Even if the generator is duplicated in command line (it used to fail due to bugs)
     client.run("install . -s:b os=Windows -s:h os=Linux --build -g VirtualRunEnv -g VirtualBuildEnv")
-    assert "BUILDENV: MyGCCValue MyOpenSSLWindowsValue "\
+    assert "BUILDENV: MyOpenSSLWindowsValue MyGCCValue "\
            "MyCMakeRunValue MyCMakeBuildValue!!!" in client.out
     assert "RUNENV: MyOpenSSLLinuxValue!!!" in client.out
 
@@ -317,6 +319,7 @@ def test_buildenv_from_requires():
     assert "BUILDENV OpenSSL: MyOpenSSLLinuxValue!!!" in client.out
 
 
+@pytest.mark.xfail(reason="The VirtualEnv generator is not fully complete")
 def test_diamond_repeated():
     pkga = textwrap.dedent(r"""
         from conans import ConanFile

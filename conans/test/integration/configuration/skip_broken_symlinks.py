@@ -38,10 +38,16 @@ class HelloConan(ConanFile):
         self.assertIn("The file is a broken symlink", client.out)
 
         # Until we deactivate the checks
-        client.run("config set general.skip_broken_symlinks_check=True")
+        conan_conf = textwrap.dedent("""
+                [storage]
+                path = ./data
+                [general]
+                skip_broken_symlinks_check=True'
+        """.format())
+        client.save({"conan.conf": conan_conf}, path=client.cache.cache_folder)
         pref = client.create(ref, conanfile=conanfile)
         self.assertIn("Created package", client.out)
-        p_folder = client.cache.package_layout(pref.ref).package(pref)
+        p_folder = client.get_latest_pkg_layout(pref).package()
 
         # The link is there
         link_path = os.path.join(p_folder, "link.txt")

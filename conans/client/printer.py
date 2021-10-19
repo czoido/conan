@@ -1,10 +1,8 @@
 import fnmatch
 from collections import OrderedDict
 
-from conans.client.output import Color
-from conans.model.options import OptionsValues
+from conans.cli.output import Color
 from conans.model.ref import ConanFileReference
-from conans.util.conan_v2_mode import conan_v2_error
 
 
 class Printer(object):
@@ -23,29 +21,17 @@ class Printer(object):
 
     def print_inspect(self, inspect, raw=False):
         for k, v in inspect.items():
-            if k == "default_options":
-                conan_v2_error("Declare 'default_options' as a dictionary", not isinstance(v, dict))
-
-                if isinstance(v, str):
-                    v = OptionsValues.loads(v)
-                elif isinstance(v, tuple):
-                    v = OptionsValues(v)
-                elif isinstance(v, list):
-                    v = OptionsValues(tuple(v))
-                elif isinstance(v, dict):
-                    v = OptionsValues(v)
-
             if raw:
                 self._out.write(str(v))
             else:
-                if isinstance(v, (dict, OptionsValues)):
+                if isinstance(v, dict):
                     self._out.writeln("%s:" % k)
                     for ok, ov in sorted(v.items()):
                         self._out.writeln("    %s: %s" % (ok, ov))
                 else:
                     self._out.writeln("%s: %s" % (k, str(v)))
 
-    def print_info(self, data, _info, package_filter=None, show_paths=False, show_revisions=False):
+    def print_info(self, data, _info, package_filter=None, show_paths=False):
         """ Print in console the dependency information for a conan file
         """
         if _info is None:  # No filter
@@ -81,14 +67,6 @@ class Printer(object):
                 _print("build_folder")
                 _print("package_folder")
 
-            if show("remote") and is_ref:
-                if "remote" in it:
-                    self._out.writeln("    Remote: %s=%s" % (it["remote"]["name"],
-                                                             it["remote"]["url"]),
-                                      Color.BRIGHT_GREEN)
-                else:
-                    self._out.writeln("    Remote: None", Color.BRIGHT_GREEN)
-
             _print("url", name="URL")
             _print("homepage", name="Homepage")
 
@@ -109,16 +87,9 @@ class Printer(object):
             _print("deprecated", name="Deprecated")
 
             _print("recipe", name="Recipe", color=None)
-            if show_revisions:
-                _print("revision", name="Revision", color=None)
-                _print("package_revision", name="Package revision", color=None)
+            _print("revision", name="Revision", color=None)
+            _print("package_revision", name="Package revision", color=None)
             _print("binary", name="Binary", color=None)
-
-            if show("binary_remote") and is_ref:
-                if "binary_remote" in it:
-                    self._out.writeln("    Binary remote: %s" % it["binary_remote"])
-                else:
-                    self._out.writeln("    Binary remote: None")
 
             _print("creation_date", show_field="date", name="Creation date")
 
@@ -173,7 +144,7 @@ class Printer(object):
                     ref = ConanFileReference.loads(reference)
                     self._out.writeln(ref.full_str())
 
-    def print_search_packages(self, search_info, ref, packages_query, raw, outdated=False):
+    def print_search_packages(self, search_info, ref, packages_query, raw):
         assert(isinstance(ref, ConanFileReference))
         if not raw:
             self._out.info("Existing packages for recipe %s:\n" % str(ref))
@@ -183,11 +154,11 @@ class Printer(object):
 
             if not remote_info["items"][0]["packages"]:
                 if packages_query:
-                    warn_msg = "There are no %spackages for reference '%s' matching the query '%s'" \
-                               % ("outdated " if outdated else "", str(ref), packages_query)
+                    warn_msg = "There are no packages for reference '%s' matching the query '%s'" \
+                               % (str(ref), packages_query)
                 elif remote_info["items"][0]["recipe"]:
-                    warn_msg = "There are no %spackages for reference '%s', but package recipe " \
-                               "found." % ("outdated " if outdated else "", str(ref))
+                    warn_msg = "There are no packages for reference '%s', but package recipe " \
+                               "found." % (str(ref))
                 if not raw:
                     self._out.info(warn_msg)
                 continue
@@ -210,11 +181,6 @@ class Printer(object):
                         elif isinstance(attr, list):  # full requires
                             for key in sorted(attr):
                                 self._print_colored_line(key, indent=3)
-                # Always compare outdated with local recipe, simplification,
-                # if a remote check is needed install recipe first
-                if "outdated" in package:
-                    self._print_colored_line("Outdated from recipe: %s" % package["outdated"],
-                                             indent=2)
                 self._out.writeln("")
 
     def print_profile(self, name, profile):
@@ -226,11 +192,7 @@ class Printer(object):
                                                        for key, values in
                                                        profile.build_requires.items()])
 
-        envs = []
-        for package, env_vars in profile.env_values.data.items():
-            for name, value in env_vars.items():
-                key = "%s:%s" % (package, name) if package else name
-                envs.append((key, value))
+        envs = profile.buildenv.dumps()
         self._print_profile_section("env", envs, separator='=')
 
     def _print_profile_section(self, name, items, indent=0, separator=": "):
@@ -253,7 +215,7 @@ class Printer(object):
         indent_text = ' ' * Printer.INDENT_SPACES * indent
         if value is not None:
             value_color = Color.BRIGHT_WHITE
-            self._out.write('%s%s%s' % (indent_text, text, separator), text_color)
-            self._out.writeln(value, value_color)
+            self._out.write('%s%s%s' % (indent_text, text, separator), fg=text_color)
+            self._out.writeln(value, fg=value_color)
         else:
             self._out.writeln('%s%s' % (indent_text, text), text_color)

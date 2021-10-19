@@ -3,7 +3,6 @@ import re
 import textwrap
 from collections import OrderedDict
 
-import six
 from jinja2 import Template
 
 from conan.tools._check_build_profile import check_using_build_profile
@@ -41,11 +40,11 @@ class Variables(OrderedDict):
 
     def quote_preprocessor_strings(self):
         for key, var in self.items():
-            if isinstance(var, six.string_types):
+            if isinstance(var, str):
                 self[key] = '"{}"'.format(var)
         for config, data in self._configuration_types.items():
             for key, var in data.items():
-                if isinstance(var, six.string_types):
+                if isinstance(var, str):
                     data[key] = '"{}"'.format(var)
 
 
@@ -134,8 +133,10 @@ class VSRuntimeBlock(Block):
 
 class FPicBlock(Block):
     template = textwrap.dedent("""
-        message(STATUS "Conan toolchain: Setting CMAKE_POSITION_INDEPENDENT_CODE=ON (options.fPIC)")
-        set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+        {% if fpic %}
+        message(STATUS "Conan toolchain: Setting CMAKE_POSITION_INDEPENDENT_CODE={{ fpic }} (options.fPIC)")
+        set(CMAKE_POSITION_INDEPENDENT_CODE {{ fpic }})
+        {% endif %}
         """)
 
     def context(self):
@@ -144,14 +145,14 @@ class FPicBlock(Block):
             return None
         os_ = self._conanfile.settings.get_safe("os")
         if os_ and "Windows" in os_:
-            self._conanfile.output.warn("Toolchain: Ignoring fPIC option defined for Windows")
+            self._conanfile.output.warning("Toolchain: Ignoring fPIC option defined for Windows")
             return None
         shared = self._conanfile.options.get_safe("shared")
         if shared:
-            self._conanfile.output.warn("Toolchain: Ignoring fPIC option defined "
-                                        "for a shared library")
+            self._conanfile.output.warning("Toolchain: Ignoring fPIC option defined "
+                                           "for a shared library")
             return None
-        return {"fpic": fpic}
+        return {"fpic": "ON" if fpic else "OFF"}
 
 
 class GLibCXXBlock(Block):
@@ -430,7 +431,7 @@ class FindConfigFiles(Block):
         # Read the buildirs
         build_paths = []
         for req in host_req:
-            cppinfo = req.new_cpp_info.copy()
+            cppinfo = req.cpp_info.copy()
             cppinfo.aggregate_components()
             build_paths.extend([os.path.join(req.package_folder,
                                        p.replace('\\', '/').replace('$', '\\$').replace('"', '\\"'))
@@ -617,7 +618,7 @@ class GenericSystemBlock(Block):
         compiler = self._conanfile.settings.get_safe("compiler")
         # TODO: Check if really necessary now that conanvcvars is used
         if (generator is not None and "Ninja" in generator
-                and ("Visual" in compiler or compiler == "msvc")):
+                and (compiler is not None and "Visual" in compiler or compiler == "msvc")):
             compiler = "cl"
         else:
             compiler = None  # compiler defined by default

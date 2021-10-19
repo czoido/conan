@@ -2,11 +2,12 @@ import fnmatch
 import os
 import stat
 
+from conans.cli.output import ConanOutput
+from conans.cli.output import ScopedOutput
 from conans.client import tools
 from conans.client.file_copier import FileCopier, report_copied_files
-from conans.client.output import ScopedOutput
+from conans.client.tools import no_op
 from conans.errors import ConanException
-from conans.model.conan_file import get_env_context_manager
 from conans.model.manifest import FileTreeManifest
 from conans.util.dates import timestamp_now
 from conans.util.env_reader import get_env
@@ -15,7 +16,8 @@ from conans.util.files import load, md5sum, mkdir
 IMPORTS_MANIFESTS = "conan_imports_manifest.txt"
 
 
-def undo_imports(current_path, output):
+def undo_imports(current_path):
+    output = ConanOutput()
     manifest_path = os.path.join(current_path, IMPORTS_MANIFESTS)
     try:
         manifest_content = load(manifest_path)
@@ -31,7 +33,7 @@ def undo_imports(current_path, output):
     files = manifest.files()
     for filepath in files:
         if not os.path.exists(filepath):
-            output.warn("File doesn't exist: %s" % filepath)
+            output.warning("File doesn't exist: %s" % filepath)
             continue
         try:
             os.remove(filepath)
@@ -50,8 +52,8 @@ def undo_imports(current_path, output):
         raise ConanException("Cannot remove manifest file (open or busy): %s" % manifest_path)
 
 
-def _report_save_manifest(copied_files, output, dest_folder, manifest_name):
-    report_copied_files(copied_files, output)
+def _report_save_manifest(copied_files, import_output, dest_folder, manifest_name):
+    report_copied_files(copied_files, import_output)
     if copied_files:
         date = timestamp_now()
         file_dict = {}
@@ -76,7 +78,7 @@ def run_imports(conanfile):
     mkdir(conanfile.imports_folder)
     file_importer = _FileImporter(conanfile, conanfile.imports_folder)
     conanfile.copy = file_importer
-    with get_env_context_manager(conanfile):
+    with no_op():  # TODO: Remove this in a later refactor
         with tools.chdir(conanfile.imports_folder):
             conanfile.imports()
     copied_files = file_importer.copied_files
@@ -86,13 +88,13 @@ def run_imports(conanfile):
     return copied_files
 
 
-def remove_imports(conanfile, copied_files, output):
+def remove_imports(conanfile, copied_files):
     if not getattr(conanfile, "keep_imports", False):
         for f in copied_files:
             try:
                 os.remove(f)
             except OSError:
-                output.warn("Unable to remove imported file from build: %s" % f)
+                conanfile.output.warning("Unable to remove imported file from build: %s" % f)
 
 
 def run_deploy(conanfile, install_folder):
@@ -111,7 +113,7 @@ def run_deploy(conanfile, install_folder):
     conanfile.copy_deps = file_importer
     conanfile.copy = file_copier
     conanfile.folders.set_base_install(install_folder)
-    with get_env_context_manager(conanfile):
+    with no_op():  # TODO: Remove this in a later refactor
         with tools.chdir(install_folder):
             conanfile.deploy()
 
@@ -151,15 +153,20 @@ class _FileImporter(object):
         else:
             real_dst_folder = os.path.normpath(os.path.join(self._dst_folder, dst))
 
-        pkgs = (self._conanfile.deps_cpp_info.dependencies if not root_package else
-                [(pkg, cpp_info) for pkg, cpp_info in self._conanfile.deps_cpp_info.dependencies
-                 if fnmatch.fnmatch(pkg, root_package)])
+        pkgs = []
+        for dep in self._conanfile.dependencies.host.values():
+            if root_package:
+                if fnmatch.fnmatch(dep.ref.name, root_package):
+                    pkgs.append((dep.ref.name, dep.package_folder, dep.cpp_info))
+            else:
+                pkgs.append((dep.ref.name, dep.package_folder, dep.cpp_info))
 
         symbolic_dir_name = src[1:] if src.startswith("@") else None
         src_dirs = [src]  # hardcoded src="bin" origin
-        for pkg_name, cpp_info in pkgs:
+        # FIXME: access of cpp_info.rootpath, use package_folder better if possible.
+        for pkg_name, package_folder, cpp_info in pkgs:
             final_dst_path = os.path.join(real_dst_folder, pkg_name) if folder else real_dst_folder
-            file_copier = FileCopier([cpp_info.rootpath], final_dst_path)
+            file_copier = FileCopier([package_folder], final_dst_path)
             if symbolic_dir_name:  # Syntax for package folder symbolic names instead of hardcoded
                 try:
                     src_dirs = getattr(cpp_info, symbolic_dir_name)

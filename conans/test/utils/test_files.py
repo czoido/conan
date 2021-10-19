@@ -5,10 +5,10 @@ import tarfile
 import tempfile
 
 import time
-from six import BytesIO
+from io import BytesIO
 
+from conan.tools.microsoft.subsystems import get_cased_path
 from conans.client.tools.files import untargz
-from conans.client.tools.win import get_cased_path
 from conans.errors import ConanException
 from conans.paths import PACKAGE_TGZ_NAME
 from conans.test import CONAN_TEST_FOLDER

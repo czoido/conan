@@ -7,7 +7,6 @@ import time
 import unittest
 
 import pytest
-import six
 from mock import patch
 from parameterized import parameterized
 
@@ -118,7 +117,6 @@ class ConfigInstallTest(unittest.TestCase):
         hooks = config.get_item("hooks")
         self.assertIn("foo", hooks)
         self.assertIn("custom/custom", hooks)
-        self.assertIn("attribute_checker", hooks)
         client.run('config install "%s"' % folder)
         self.assertIn("Processing conan.conf", client.out)
         content = load(client.cache.conan_conf_path)
@@ -191,7 +189,7 @@ class ConfigInstallTest(unittest.TestCase):
                          "full_package_mode")
         self.assertEqual(conan_conf.get_item("general.sysrequires_sudo"), "True")
         self.assertEqual(conan_conf.get_item("general.cpu_count"), "1")
-        with six.assertRaisesRegex(self, ConanException, "'config_install' doesn't exist"):
+        with self.assertRaisesRegex(ConanException, "'config_install' doesn't exist"):
             conan_conf.get_item("general.config_install")
         self.assertEqual(conan_conf.get_item("proxies.https"), "None")
         self.assertEqual(conan_conf.get_item("proxies.http"), "http://user:pass@10.10.1.10:3128/")
@@ -311,28 +309,6 @@ class Pkg(ConanFile):
         self.assertEqual(1, content.count("subf"))
         self.assertEqual(1, content.count("other"))
 
-    def test_install_registry_txt_error(self):
-        folder = temp_folder()
-        save_files(folder, {"registry.txt": "myrepo1 https://myrepourl.net False"})
-        self.client.run('config install "%s"' % folder)
-        self.assertIn("WARN: registry.txt has been deprecated. Migrating to remotes.json",
-                      self.client.out)
-        self.client.run("remote list")
-        self.assertEqual("myrepo1: https://myrepourl.net [Verify SSL: False]\n", self.client.out)
-
-    def test_install_registry_json_error(self):
-        folder = temp_folder()
-        registry_json = {"remotes": [{"url": "https://server.conan.io",
-                                      "verify_ssl": True,
-                                      "name": "conan.io"
-                                      }]}
-        save_files(folder, {"registry.json": json.dumps(registry_json)})
-        self.client.run('config install "%s"' % folder)
-        self.assertIn("WARN: registry.json has been deprecated. Migrating to remotes.json",
-                      self.client.out)
-        self.client.run("remote list")
-        self.assertEqual("conan.io: https://server.conan.io [Verify SSL: True]\n", self.client.out)
-
     def test_install_remotes_json_error(self):
         folder = temp_folder()
         save_files(folder, {"remotes.json": ""})
@@ -398,7 +374,14 @@ class Pkg(ConanFile):
     def test_failed_install_http(self):
         """ should install from a http zip
         """
-        self.client.run("config set general.retry_wait=0")
+        conan_conf = textwrap.dedent("""
+                    [storage]
+                    path = ./data
+                    [general]
+                    general.retry_wait=0
+                """)
+        self.client.save({"conan.conf": conan_conf}, path=self.client.cache.cache_folder)
+
         self.client.run('config install httpnonexisting', assert_error=True)
         self.assertIn("ERROR: Failed conan config install: "
                       "Error while installing config from httpnonexisting", self.client.out)
@@ -689,11 +672,19 @@ class ConfigInstallSchedTest(unittest.TestCase):
         self.assertIn("Processing conan.conf", self.client.out)
         self.assertLess(os.path.getmtime(self.client.cache.config_install_file), time.time() + 1)
 
+    @pytest.mark.xfail(reason="Tests using the Search command are temporarely disabled")
     def test_sched_timeout(self):
         """ Conan config install must be executed when the scheduled time reaches
         """
         self.client.run('config install "%s"' % self.folder)
-        self.client.run('config set general.config_install_interval=1m')
+        conan_conf = textwrap.dedent("""
+                    [storage]
+                    path = ./data
+                    [general]
+                    config_install_interval=1m
+                """)
+        self.client.save({"conan.conf": conan_conf}, path=self.client.cache.cache_folder)
+
         self.assertNotIn("Processing conan.conf", self.client.out)
         past_time = int(time.time() - 120)  # 120 seconds in the past
         os.utime(self.client.cache.config_install_file, (past_time, past_time))
@@ -702,23 +693,26 @@ class ConfigInstallSchedTest(unittest.TestCase):
         self.assertIn("Processing conan.conf", self.client.out)
         self.client.run('search')  # not again, it was fired already
         self.assertNotIn("Processing conan.conf", self.client.out)
-        self.client.run('config get general.config_install_interval')
-        self.assertNotIn("Processing conan.conf", self.client.out)
-        self.assertIn("5m", self.client.out)  # The previous 5 mins has been restored!
 
     def test_invalid_scheduler(self):
         """ An exception must be raised when conan_config.json is not listed
         """
         self.client.run('config install "%s"' % self.folder)
         os.remove(self.client.cache.config_install_file)
-        self.client.run('config get general.config_install_interval', assert_error=True)
+        self.client.run('config help', assert_error=True)
         self.assertIn("config_install_interval defined, but no config_install file", self.client.out)
 
     @parameterized.expand([("1y",), ("2015t",), ("42",)])
     def test_invalid_time_interval(self, internal):
         """ config_install_interval only accepts seconds, minutes, hours, days and weeks.
         """
-        self.client.run('config set general.config_install_interval={}'.format(internal))
+        conan_conf = textwrap.dedent("""
+                            [storage]
+                            path = ./data
+                            [general]
+                            config_install_interval={}
+                        """).format(internal)
+        self.client.save({"conan.conf": conan_conf}, path=self.client.cache.cache_folder)
         # Any conan invocation will fire the configuration error
         self.client.run('install .', assert_error=True)
         self.assertIn("ERROR: Incorrect definition of general.config_install_interval: {}. "

@@ -3,7 +3,7 @@ import os
 import textwrap
 
 from jinja2 import Template
-from six.moves.configparser import ConfigParser, NoSectionError
+from configparser import ConfigParser, NoSectionError
 
 from conans.errors import ConanException
 from conans.model.env_info import unquote
@@ -13,18 +13,6 @@ from conans.util.env_reader import get_env
 from conans.util.files import load
 
 _t_default_settings_yml = Template(textwrap.dedent("""
-    # Only for cross building, 'os_build/arch_build' is the system that runs Conan
-    os_build: [Windows, WindowsStore, Linux, Macos, FreeBSD, SunOS, AIX]
-    arch_build: [x86, x86_64, ppc32be, ppc32, ppc64le, ppc64, armv5el, armv5hf, armv6, armv7, armv7hf, armv7s, armv7k, armv8, armv8_32, armv8.3, sparc, sparcv9, mips, mips64, avr, s390, s390x, sh4le, e2k-v2, e2k-v3, e2k-v4, e2k-v5, e2k-v6, e2k-v7]
-
-    # Only for building cross compilation tools, 'os_target/arch_target' is the system for
-    # which the tools generate code
-    os_target: [Windows, Linux, Macos, Android, iOS, watchOS, tvOS, FreeBSD, SunOS, AIX, Arduino, Neutrino]
-    arch_target: [x86, x86_64, ppc32be, ppc32, ppc64le, ppc64, armv5el, armv5hf, armv6, armv7, armv7hf, armv7s, armv7k, armv8, armv8_32, armv8.3, sparc, sparcv9, mips, mips64, avr, s390, s390x, asm.js, wasm, sh4le, e2k-v2, e2k-v3, e2k-v4, e2k-v5, e2k-v6, e2k-v7, xtensalx6, xtensalx106]
-
-    # Rest of the settings are "host" settings:
-    # - For native building/cross building: Where the library/program will run.
-    # - For building cross compilation tools: Where the cross compiler will run.
     os:
         Windows:
             subsystem: [None, cygwin, msys, msys2, wsl]
@@ -137,10 +125,6 @@ _t_default_settings_yml = Template(textwrap.dedent("""
                     exceptions: [None]
 
     build_type: [None, Debug, Release, RelWithDebInfo, MinSizeRel]
-
-
-    cppstd: [None, 98, gnu98, 11, gnu11, 14, gnu14, 17, gnu17, 20, gnu20, 23, gnu23]  # Deprecated, use compiler.cppstd
-
     """))
 
 
@@ -167,12 +151,9 @@ _t_default_client_conf = Template(textwrap.dedent("""
     # sysrequires_mode = enabled          # environment CONAN_SYSREQUIRES_MODE (allowed modes enabled/verify/disabled)
     # vs_installation_preference = Enterprise, Professional, Community, BuildTools # environment CONAN_VS_INSTALLATION_PREFERENCE
     # verbose_traceback = False           # environment CONAN_VERBOSE_TRACEBACK
-    # error_on_override = False           # environment CONAN_ERROR_ON_OVERRIDE
     # bash_path = ""                      # environment CONAN_BASH_PATH (only windows)
     # read_only_cache = True              # environment CONAN_READ_ONLY_CACHE
     # cache_no_locks = True               # environment CONAN_CACHE_NO_LOCKS
-    # user_home_short = your_path         # environment CONAN_USER_HOME_SHORT
-    # use_always_short_paths = False      # environment CONAN_USE_ALWAYS_SHORT_PATHS
     # skip_vs_projects_upgrade = False    # environment CONAN_SKIP_VS_PROJECTS_UPGRADE
     # non_interactive = False             # environment CONAN_NON_INTERACTIVE
     # skip_broken_symlinks_check = False  # environment CONAN_SKIP_BROKEN_SYMLINKS_CHECK
@@ -201,12 +182,9 @@ _t_default_client_conf = Template(textwrap.dedent("""
     # temp_test_folder = True             # environment CONAN_TEMP_TEST_FOLDER
 
     # cacert_path                         # environment CONAN_CACERT_PATH
-    # scm_to_conandata                    # environment CONAN_SCM_TO_CONANDATA
 
     # config_install_interval = 1h
     # required_conan_version = >=1.26
-
-    # keep_python_files = False           # environment CONAN_KEEP_PYTHON_FILES
 
     [storage]
     # This is the default path, but you can write your own. It must be an absolute path or a
@@ -226,10 +204,6 @@ _t_default_client_conf = Template(textwrap.dedent("""
     #   hostname.to.be.proxied.com = http://user:pass@10.10.1.10:3128
     # You can skip the proxy for the matching (fnmatch) urls (comma-separated)
     # no_proxy_match = *bintray.com*, https://myserver.*
-
-    [hooks]    # environment CONAN_HOOKS
-    attribute_checker
-
     """))
 
 
@@ -264,10 +238,7 @@ class ConanClientConfigParser(ConfigParser, object):
             ("CONAN_VS_INSTALLATION_PREFERENCE", "vs_installation_preference", None),
             ("CONAN_CPU_COUNT", "cpu_count", None),
             ("CONAN_READ_ONLY_CACHE", "read_only_cache", None),
-            ("CONAN_USER_HOME_SHORT", "user_home_short", None),
-            ("CONAN_USE_ALWAYS_SHORT_PATHS", "use_always_short_paths", None),
             ("CONAN_VERBOSE_TRACEBACK", "verbose_traceback", None),
-            ("CONAN_ERROR_ON_OVERRIDE", "error_on_override", False),
             # http://www.vtk.org/Wiki/CMake_Cross_Compiling
             ("CONAN_CMAKE_GENERATOR", "cmake_generator", None),
             ("CONAN_CMAKE_GENERATOR_PLATFORM", "cmake_generator_platform", None),
@@ -287,7 +258,6 @@ class ConanClientConfigParser(ConfigParser, object):
             ("CONAN_MSBUILD_VERBOSITY", "msbuild_verbosity", None),
             ("CONAN_CACERT_PATH", "cacert_path", None),
             ("CONAN_DEFAULT_PACKAGE_ID_MODE", "default_package_id_mode", None),
-            ("CONAN_KEEP_PYTHON_FILES", "keep_python_files", False),
             # ("CONAN_DEFAULT_PROFILE_PATH", "default_profile", DEFAULT_PROFILE_NAME),
         ],
         "hooks": [
@@ -299,6 +269,7 @@ class ConanClientConfigParser(ConfigParser, object):
         super(ConanClientConfigParser, self).__init__(allow_no_value=True)
         self.read(filename)
         self.filename = filename
+        self._non_interactive = None
 
     @property
     def env_vars(self):
@@ -399,25 +370,6 @@ class ConanClientConfigParser(ConfigParser, object):
             raise ConanException("Invalid configuration, missing %s" % varname)
 
     @property
-    def default_profile(self):
-        ret = os.environ.get("CONAN_DEFAULT_PROFILE_PATH", None)
-        if ret:
-            if not os.path.isabs(ret):
-                from conans.client.cache.cache import PROFILES_FOLDER
-                profiles_folder = os.path.join(os.path.dirname(self.filename), PROFILES_FOLDER)
-                ret = os.path.abspath(os.path.join(profiles_folder, ret))
-
-            if not os.path.exists(ret):
-                raise ConanException("Environment variable 'CONAN_DEFAULT_PROFILE_PATH' "
-                                     "must point to an existing profile file.")
-            return ret
-        else:
-            try:
-                return unquote(self.get_item("general.default_profile"))
-            except ConanException:
-                return DEFAULT_PROFILE_NAME
-
-    @property
     def cache_no_locks(self):
         try:
             return get_env("CONAN_CACHE_NO_LOCKS", False)
@@ -437,16 +389,6 @@ class ConanClientConfigParser(ConfigParser, object):
             return float(timeout) if timeout is not None else None
         except ValueError:
             raise ConanException("Specify a numeric parameter for 'request_timeout'")
-
-    @property
-    def revisions_enabled(self):
-        try:
-            revisions_enabled = get_env("CONAN_REVISIONS_ENABLED")
-            if revisions_enabled is None:
-                revisions_enabled = self.get_item("general.revisions_enabled")
-            return revisions_enabled.lower() in ("1", "true")
-        except ConanException:
-            return False
 
     @property
     def parallel_download(self):
@@ -469,16 +411,6 @@ class ConanClientConfigParser(ConfigParser, object):
             return None
 
     @property
-    def scm_to_conandata(self):
-        try:
-            scm_to_conandata = get_env("CONAN_SCM_TO_CONANDATA")
-            if scm_to_conandata is None:
-                scm_to_conandata = self.get_item("general.scm_to_conandata")
-            return scm_to_conandata.lower() in ("1", "true")
-        except ConanException:
-            return False
-
-    @property
     def default_package_id_mode(self):
         try:
             default_package_id_mode = get_env("CONAN_DEFAULT_PACKAGE_ID_MODE")
@@ -497,60 +429,6 @@ class ConanClientConfigParser(ConfigParser, object):
         except ConanException:
             return "minor_mode"
         return default_package_id_mode
-
-    @property
-    def full_transitive_package_id(self):
-        try:
-            fix_id = self.get_item("general.full_transitive_package_id")
-            return fix_id.lower() in ("1", "true")
-        except ConanException:
-            return None
-
-    @property
-    def short_paths_home(self):
-        short_paths_home = get_env("CONAN_USER_HOME_SHORT")
-        if not short_paths_home:
-            try:
-                short_paths_home = self.get_item("general.user_home_short")
-            except ConanException:
-                return None
-        if short_paths_home:
-            current_dir = os.path.dirname(os.path.normpath(os.path.normcase(self.filename)))
-            short_paths_dir = os.path.normpath(os.path.normcase(short_paths_home))
-            if current_dir == short_paths_dir  or \
-                    short_paths_dir.startswith(current_dir + os.path.sep):
-                raise ConanException("Short path home '{}' (defined by conan.conf variable "
-                                     "'user_home_short', or environment variable "
-                                     "'CONAN_USER_HOME_SHORT') cannot be a subdirectory of "
-                                     "the conan cache '{}'.".format(short_paths_home, current_dir))
-        return short_paths_home
-
-    @property
-    def storage_path(self):
-        # Try with CONAN_STORAGE_PATH
-        result = get_env('CONAN_STORAGE_PATH', None)
-        if not result:
-            # Try with conan.conf "path"
-            try:
-                # TODO: Fix this mess for Conan 2.0
-                env_conan_user_home = os.getenv("CONAN_USER_HOME")
-                current_dir = os.path.dirname(self.filename)
-                # if env var is declared, any specified path will be relative to CONAN_USER_HOME
-                # even with the ~/
-                result = dict(self._get_conf("storage"))["path"]
-                if result.startswith("."):
-                    result = os.path.abspath(os.path.join(current_dir, result))
-                elif result[:2] == "~/":
-                    if env_conan_user_home:
-                        result = os.path.join(env_conan_user_home, result[2:])
-            except (KeyError, ConanException):  # If storage not defined, to return None
-                pass
-
-        if result:
-            result = conan_expand_user(result)
-            if not os.path.isabs(result):
-                raise ConanException("Conan storage path has to be an absolute path")
-        return result
 
     @property
     def proxies(self):
@@ -633,13 +511,22 @@ class ConanClientConfigParser(ConfigParser, object):
 
     @property
     def non_interactive(self):
-        try:
-            non_interactive = get_env("CONAN_NON_INTERACTIVE")
-            if non_interactive is None:
-                non_interactive = self.get_item("general.non_interactive")
-            return non_interactive.lower() in ("1", "true")
-        except ConanException:
-            return False
+        if self._non_interactive is None:
+            try:
+                non_interactive = get_env("CONAN_NON_INTERACTIVE")
+                if non_interactive is None:
+                    non_interactive = self.get_item("general.non_interactive")
+                self._non_interactive = non_interactive.lower() in ("1", "true")
+            except ConanException:
+                self._non_interactive = False
+        return self._non_interactive
+
+    @non_interactive.setter
+    def non_interactive(self, value):
+        # Made this because uploads in parallel need a way to disable the interactive
+        # FIXME: Can't we fail in the command line directly if no interactive?
+        #        see uploader.py  if parallel_upload:
+        self._non_interactive = value
 
     @property
     def logging_level(self):

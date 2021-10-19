@@ -3,7 +3,7 @@ import tempfile
 import textwrap
 import os
 
-import six
+import pytest
 
 import conan.tools.qbs.qbsprofile as qbs
 
@@ -16,8 +16,6 @@ class RunnerMock(object):
     class Expectation(object):
         def __init__(self, return_ok=True, output=None):
             self.return_ok = return_ok
-            if six.PY2 and output:
-                output = output.decode("utf-8")
             self.output = output
 
     def __init__(self, expectations=None):
@@ -371,7 +369,6 @@ class QbsGenericTest(unittest.TestCase):
                             qbs._settings_dir(conanfile)))
         self.assertEqual(config, expected_config)
 
-    @unittest.skipIf(six.PY2, "Order of qbs output is defined only for PY3")
     def test_toolchain_content(self):
         expected_content = textwrap.dedent('''\
             import qbs
@@ -469,7 +466,7 @@ class QbsGenericTest(unittest.TestCase):
                             qbs._settings_dir(conanfile)))
         self.assertEqual(config, expected_config)
 
-    @unittest.skipIf(six.PY2, "Order of qbs output is defined only for PY3")
+    @pytest.mark.xfail(reason="Qbs is broken in Windows, using legacy vcvars integration")
     def test_toolchain_content_msvc(self):
         expected_content = textwrap.dedent('''\
             import qbs

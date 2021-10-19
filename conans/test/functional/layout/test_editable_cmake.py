@@ -22,10 +22,8 @@ def editable_cmake(generator):
            path=os.path.join(c.current_folder, "pkg"))
 
     def build_dep():
-        c.run("install . -if=install_release")
-        c.run("build . -if=install_release")
-        c.run("install . -s build_type=Debug -if=install_debug")
-        c.run("build . -if=install_debug")
+        c.run("build .")
+        c.run("build . -s build_type=Debug")
 
     with c.chdir("dep"):
         c.run("editable add . dep/0.1@")
@@ -37,7 +35,7 @@ def editable_cmake(generator):
         c.run_command(os.sep.join([".", folder, "pkg"]))
         assert "main: Release!" in c.out
         assert "{}: Release!".format(msg) in c.out
-        c.run("build . -if=install_debug")
+        c.run("build . -if=install_debug -s build_type=Debug")
         folder = os.path.join("build", "Debug") if multi else "cmake-build-debug"
         c.run_command(os.sep.join([".", folder, "pkg"]))
         assert "main: Debug!" in c.out
@@ -73,6 +71,7 @@ def test_editable_cmake_windows(generator):
 
 @pytest.mark.skipif(platform.system() != "Linux", reason="Only linux")
 @pytest.mark.parametrize("generator", [None, "Ninja", "Ninja Multi-Config"])
+@pytest.mark.tool_cmake(version="3.17")
 def test_editable_cmake_linux(generator):
     editable_cmake(generator)
 
@@ -94,10 +93,8 @@ def editable_cmake_exe(generator):
     c.save(pkg_cmake("dep", "0.1", exe=True), path=os.path.join(c.current_folder, "dep"))
 
     def build_dep():
-        c.run("install . -o dep:shared=True -if=install_release")
-        c.run("build . -if=install_release")
-        c.run("install . -s build_type=Debug -o dep:shared=True -if=install_debug")
-        c.run("build . -if=install_debug")
+        c.run("build . -o dep:shared=True")
+        c.run("build . -s build_type=Debug -o dep:shared=True")
 
     with c.chdir("dep"):
         c.run("editable add . dep/0.1@")
@@ -137,6 +134,7 @@ def test_editable_cmake_windows_exe(generator):
 
 @pytest.mark.skipif(platform.system() != "Linux", reason="Only linux")
 @pytest.mark.parametrize("generator", [None, "Ninja", "Ninja Multi-Config"])
+@pytest.mark.tool_cmake(version="3.17")
 def test_editable_cmake_linux_exe(generator):
     editable_cmake_exe(generator)
 

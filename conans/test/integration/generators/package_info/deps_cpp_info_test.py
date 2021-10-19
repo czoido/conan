@@ -1,10 +1,13 @@
 import textwrap
 import unittest
 
+import pytest
+
 from conans.test.assets.genconanfile import GenConanfile
 from conans.test.utils.tools import TestClient
 
 
+@pytest.mark.xfail(reason="DepsCppInfo removed")
 class DepsCppInfoTest(unittest.TestCase):
 
     def test(self):
@@ -19,7 +22,7 @@ class DepsCppInfoTest(unittest.TestCase):
             class Pkg(ConanFile):
                 requires = "dep/0.1@user/testing"
                 def build(self):
-                    self.output.info("DEPS_CPP_INFO_BIN: %s" % self.deps_cpp_info["dep"].bin_paths)
+                    self.output.info("DEPS_CPP_INFO_BIN: %s" % self.dependencies["dep"].cpp_info.bin_paths)
             """)
         client.save({"conanfile.py": conanfile})
         client.run("create . pkg/0.1@user/testing")

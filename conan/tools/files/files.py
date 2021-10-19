@@ -6,6 +6,7 @@ import subprocess
 from contextlib import contextmanager
 
 from conan.tools import CONAN_TOOLCHAIN_ARGS_FILE, CONAN_TOOLCHAIN_ARGS_SECTION
+from conans.cli.output import ConanOutput
 from conans.client.downloaders.download import run_downloader
 from conans.client.tools.files import unzip, which
 from conans.errors import ConanException
@@ -56,8 +57,6 @@ def get(conanfile, url, md5='', sha1='', sha256='', destination=".", filename=""
         auth=None, headers=None, strip_root=False):
     """ high level downloader + unzipper + (optional hash checker) + delete temporary zip
     """
-
-    output = conanfile.output
     if not filename:  # deduce filename from the URL
         url_base = url[0] if isinstance(url, (list, tuple)) else url
         if "?" in url_base or "=" in url_base:
@@ -69,7 +68,7 @@ def get(conanfile, url, md5='', sha1='', sha256='', destination=".", filename=""
              retry=retry, retry_wait=retry_wait, auth=auth, headers=headers,
              md5=md5, sha1=sha1, sha256=sha256)
     unzip(filename, destination=destination, keep_permissions=keep_permissions, pattern=pattern,
-          output=output, strip_root=strip_root)
+          strip_root=strip_root)
     os.unlink(filename)
 
 
@@ -120,9 +119,9 @@ def download(conanfile, url, filename, verify=True, retry=None, retry_wait=None,
     :return: None
     """
     # TODO: Add all parameters to the new conf
-    out = conanfile.output
     requester = conanfile._conan_requester
     config = conanfile.conf
+    out = ConanOutput()
     overwrite = True
 
     if config["tools.files.download:retry"]:
@@ -140,9 +139,9 @@ def download(conanfile, url, filename, verify=True, retry=None, retry_wait=None,
 
     def _download_file(file_url):
         # The download cache is only used if a checksum is provided, otherwise, a normal download
-        run_downloader(requester=requester, output=out, verify=verify, download_cache=download_cache,
-                       user_download=True, url=file_url,
-                       file_path=filename, retry=retry, retry_wait=retry_wait, overwrite=overwrite,
+        run_downloader(requester=requester, verify=verify, download_cache=download_cache,
+                       user_download=True, url=file_url, overwrite=overwrite,
+                       file_path=filename, retry=retry, retry_wait=retry_wait,
                        auth=auth, headers=headers, md5=md5, sha1=sha1, sha256=sha256)
         out.writeln("")
 
@@ -155,7 +154,7 @@ def download(conanfile, url, filename, verify=True, retry=None, retry_wait=None,
                 break
             except Exception as error:
                 message = "Could not download from the URL {}: {}.".format(url_it, str(error))
-                out.warn(message + " Trying another mirror.")
+                out.warning(message + " Trying another mirror.")
         else:
             raise ConanException("All downloads from ({}) URLs have failed.".format(len(url)))
 

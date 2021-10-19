@@ -7,11 +7,11 @@ from mock import Mock
 
 from conan.tools.microsoft import MSBuild, MSBuildToolchain
 from conans.model.conf import ConfDefinition
-from conans.model.env_info import EnvValues
+from conans.model.settings import Settings
 from conans.test.utils.mocks import ConanFileMock, MockSettings
 from conans.test.utils.test_files import temp_folder
 from conans.tools import load
-from conans import ConanFile, Settings
+from conans import ConanFile
 
 
 def test_msbuild_cpu_count():
@@ -41,9 +41,9 @@ def test_msbuild_toolset():
                          "compiler": {"msvc": {"version": ["19.3"]}},
                          "os": ["Windows"],
                          "arch": ["x86_64"]})
-    conanfile = ConanFile(Mock(), None)
+    conanfile = ConanFile(None)
     conanfile.settings = "os", "compiler", "build_type", "arch"
-    conanfile.initialize(settings, EnvValues())
+    conanfile.initialize(settings)
     conanfile.settings.build_type = "Release"
     conanfile.settings.compiler = "msvc"
     conanfile.settings.compiler.version = "19.3"
@@ -67,7 +67,7 @@ def test_msbuild_toolset_for_intel_cc(mode, expected_toolset):
                          "arch": ["x86_64"]})
     conanfile = ConanFile(Mock(), None)
     conanfile.settings = "os", "compiler", "build_type", "arch"
-    conanfile.initialize(settings, EnvValues())
+    conanfile.initialize(settings)
     conanfile.settings.build_type = "Release"
     conanfile.settings.compiler = "intel-cc"
     conanfile.settings.compiler.version = "2021.3"
@@ -91,7 +91,8 @@ def test_msbuild_standard():
     conanfile.install_folder = test_folder
     conanfile.conf = ConfDefinition()
     conanfile.settings = "os", "compiler", "build_type", "arch"
-    conanfile.initialize(settings, EnvValues())
+    conanfile.settings_build = settings
+    conanfile.initialize(settings)
     conanfile.settings.build_type = "Release"
     conanfile.settings.compiler = "msvc"
     conanfile.settings.compiler.version = "19.3"
@@ -127,7 +128,7 @@ def test_msbuild_and_intel_cc_props(mode, expected_toolset):
     conanfile.install_folder = test_folder
     conanfile.conf = c
     conanfile.settings = "os", "compiler", "build_type", "arch"
-    conanfile.initialize(settings, EnvValues())
+    conanfile.initialize(settings)
     conanfile.settings.build_type = "Release"
     conanfile.settings.compiler = "intel-cc"
     conanfile.settings.compiler.version = "2021.3"

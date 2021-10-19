@@ -15,35 +15,8 @@ class TestMesonBase(unittest.TestCase):
     def setUp(self):
         self.t = TestClient()
 
-    @property
-    def _settings(self):
-        settings_macosx = {"compiler": "apple-clang",
-                           "compiler.libcxx": "libc++",
-                           "compiler.version": "12.0",
-                           "arch": "x86_64",
-                           "build_type": "Release"}
-
-        settings_windows = {"compiler": "Visual Studio",
-                            "compiler.version": "15",
-                            "compiler.runtime": "MD",
-                            "arch": "x86_64",
-                            "build_type": "Release"}
-
-        settings_linux = {"compiler": "gcc",
-                          "compiler.version": "5",
-                          "compiler.libcxx": "libstdc++",
-                          "arch": "x86_64",
-                          "build_type": "Release"}
-
-        return {"Darwin": settings_macosx,
-                "Windows": settings_windows,
-                "Linux": settings_linux}.get(platform.system())
-
-    @property
-    def _settings_str(self):
-        return " ".join('-s %s="%s"' % (k, v) for k, v in self._settings.items() if v)
-
     def _check_binary(self):
+        # FIXME: This is hardcoded for CI
         if platform.system() == "Darwin":
             self.assertIn("main __x86_64__ defined", self.t.out)
             self.assertIn("main __apple_build_version__", self.t.out)
@@ -57,4 +30,4 @@ class TestMesonBase(unittest.TestCase):
             self.assertIn("main _MSVC_LANG2014", self.t.out)
         elif platform.system() == "Linux":
             self.assertIn("main __x86_64__ defined", self.t.out)
-            self.assertIn("main __GNUC__5", self.t.out)
+            self.assertIn("main __GNUC__9", self.t.out)

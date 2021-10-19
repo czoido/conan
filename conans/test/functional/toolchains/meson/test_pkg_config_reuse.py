@@ -18,7 +18,7 @@ class MesonPkgConfigTest(TestMesonBase):
 
     class App(ConanFile):
         settings = "os", "arch", "compiler", "build_type"
-        generators = "pkg_config"
+        generators = "PkgConfigDeps"
         requires = "hello/0.1"
 
         def generate(self):
@@ -38,8 +38,8 @@ class MesonPkgConfigTest(TestMesonBase):
     """)
 
     def test_reuse(self):
-        self.t.run("new hello/0.1 -s")
-        self.t.run("create . hello/0.1@ %s" % self._settings_str)
+        self.t.run("new hello/0.1 --template=cmake_lib")
+        self.t.run("create . hello/0.1@ -tf=None")
 
         app = gen_function_cpp(name="main", includes=["hello"], calls=["hello"])
 
@@ -50,8 +50,7 @@ class MesonPkgConfigTest(TestMesonBase):
                     clean_first=True)
 
         # Build in the cache
-        self.t.run("install . %s" % self._settings_str)
-        self.assertIn("conanfile.py: Generator pkg_config created hello.pc", self.t.out)
+        self.t.run("install .")
 
         self.t.run("build .")
         self.t.run_command(os.path.join("build", "demo"))

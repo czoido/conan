@@ -1,10 +1,12 @@
 import os
 import unittest
+from collections import OrderedDict
 
-import six
+import pytest
 
-from conans.paths import BUILD_INFO, CONANFILE
-from conans.test.utils.tools import TestClient
+from conans.paths import CONANFILE
+from conans.test.assets.genconanfile import GenConanfile
+from conans.test.utils.tools import TestClient, TestServer
 from conans.util.files import mkdir
 
 
@@ -93,18 +95,11 @@ class ConanLib(ConanFile):
         client.save({"conanfile.txt": "contents"}, clean_first=True)
 
         # Path with conanfile.txt
-        client.run("source conanfile.txt --install-folder subdir", assert_error=True)
+        client.run("source conanfile.txt", assert_error=True)
         self.assertIn(
             "A conanfile.py is needed, %s is not acceptable"
             % os.path.join(client.current_folder, "conanfile.txt"),
             client.out)
-
-        # Path with wrong conanfile path
-        client.run("package not_real_dir/conanfile.py --build-folder build2 --install-folder build",
-                   assert_error=True)
-        self.assertIn("Conanfile not found at %s"
-                      % os.path.join(client.current_folder, "not_real_dir", "conanfile.py"),
-                      client.out)
 
     def test_source_local_cwd(self):
         conanfile = '''
@@ -124,7 +119,7 @@ class ConanLib(ConanFile):
         subdir = os.path.join(client.current_folder, "subdir")
         os.mkdir(subdir)
         client.run("install . --install-folder subdir")
-        client.run("source . --install-folder subdir --source-folder subdir")
+        client.run("source . --source-folder subdir")
         self.assertIn("conanfile.py (Hello/0.1): Configuring sources", client.out)
         self.assertIn("conanfile.py (Hello/0.1): cwd=>%s" % subdir, client.out)
 
@@ -132,91 +127,15 @@ class ConanLib(ConanFile):
         conanfile = '''
 import os
 from conans import ConanFile
-
 class ConanLib(ConanFile):
     name = "Hello"
     version = "0.1"
-
-    def source(self):
-        pass
 '''
         client = TestClient()
         client.save({CONANFILE: conanfile})
         # Automatically created
         client.run("source conanfile.py --source-folder=src")
         self.assertTrue(os.path.exists(os.path.join(client.current_folder, "src")))
-
-    def test_build_folder_no_exists_crash(self):
-        conanfile = '''
-import os
-from conans import ConanFile
-
-class ConanLib(ConanFile):
-    name = "Hello"
-    version = "0.1"
-
-    def source(self):
-        pass
-'''
-        client = TestClient()
-        client.save({CONANFILE: conanfile})
-        # Automatically created
-        client.run("source ./conanfile.py --install-folder=missing_folder", assert_error=True)
-        self.assertIn("Specified info-folder doesn't exist", client.out)
-
-    def test_build_folder_reading_infos(self):
-        conanfile = '''
-import os
-from conans import ConanFile
-
-class ConanLib(ConanFile):
-    name = "Hello"
-    version = "0.1"
-
-    def package_info(self):
-        self.cpp_info.cxxflags.append("FLAG")
-        self.env_info.MYVAR = "foo"
-        self.user_info.OTHERVAR = "bar"
-'''
-        client = TestClient()
-        client.save({CONANFILE: conanfile})
-        client.run("export . conan/testing")
-
-        conanfile = '''
-import os
-from conans import ConanFile
-from conans.util.files import save
-
-class ConanLib(ConanFile):
-
-    requires="Hello/0.1@conan/testing"
-
-    def source(self):
-        assert(os.getcwd() == self.source_folder)
-        self.output.info("FLAG=%s" % self.deps_cpp_info["Hello"].cxxflags[0])
-        self.output.info("MYVAR=%s" % self.deps_env_info["Hello"].MYVAR)
-        self.output.info("OTHERVAR=%s" % self.deps_user_info["Hello"].OTHERVAR)
-        self.output.info("CURDIR=%s" % os.getcwd())
-
-'''
-        # First, failing source()
-        client.save({CONANFILE: conanfile}, clean_first=True)
-        build_folder = os.path.join(client.current_folder, "build")
-        src_folder = os.path.join(client.current_folder, "src")
-        mkdir(build_folder)
-        mkdir(src_folder)
-        client.run("source . --install-folder='%s' --source-folder='%s'"
-                   % (build_folder, src_folder),
-                   assert_error=True)
-        self.assertIn("self.deps_cpp_info not defined.", client.out)
-
-        client.run("install . --install-folder build --build ")
-        client.run("source conanfile.py --install-folder='%s' --source-folder='%s'"
-                   % (build_folder, src_folder))
-        self.assertIn("FLAG=FLAG", client.out)
-        self.assertIn("MYVAR=foo", client.out)
-        self.assertIn("OTHERVAR=bar", client.out)
-        self.assertIn("CURDIR=%s" % src_folder, client.out)
 
     def test_repeat_args_fails(self):
         conanfile = '''
@@ -229,9 +148,10 @@ class ConanLib(ConanFile):
         client = TestClient()
         client.save({CONANFILE: conanfile})
         client.run("source ./conanfile.py --source-folder sf")
-        with six.assertRaisesRegex(self, Exception, "Command failed"):
+        with self.assertRaisesRegex(Exception, "Command failed"):
             client.run("source . --source-folder sf --source-folder sf")
-        with six.assertRaisesRegex(self, Exception, "Command failed"):
+        with self.assertRaisesRegex(Exception, "Command failed"):
+
             client.run("source conanfile.py --source-folder sf --install-folder if "
                        "--install-folder rr")
 
@@ -249,8 +169,7 @@ class ConanLib(ConanFile):
 '''
         # First, failing source()
         client = TestClient()
-        client.save({CONANFILE: conanfile,
-                     BUILD_INFO: ""})
+        client.save({CONANFILE: conanfile})
 
         client.run("source .", assert_error=True)
         self.assertIn("conanfile.py: Running source!", client.out)
@@ -262,3 +181,46 @@ class ConanLib(ConanFile):
         self.assertIn("conanfile.py: Configuring sources in", client.out)
         self.assertIn("conanfile.py: Running source!", client.out)
         self.assertEqual("Hello World", client.load("file1.txt"))
+
+    def test_retrieve_exports_sources(self):
+        # For Conan 2.0 if we install a package from a remote and we want to upload to other
+        # remote we need to download the sources, as we consider revisions inmutable, let's
+        # iterate through the remotes to get the sources from the first match
+        servers = OrderedDict()
+        for index in range(2):
+            servers[f"server{index}"] = TestServer([("*/*@*/*", "*")], [("*/*@*/*", "*")],
+                                                   users={"user": "password"})
+
+        users = {"server0": [("user", "password")],
+                 "server1": [("user", "password")]}
+
+        client = TestClient(servers=servers, inputs=3*["user", "password"])
+        client.save({"conanfile.py": GenConanfile().with_exports_sources("*"),
+                     "sources.cpp": "sources"})
+        client.run("create . hello/0.1@")
+        client.run("upload hello/0.1@ --all -r server0")
+        client.run("remove * -f")
+
+        # install from server0 that has the sources, upload to server1 (does not have the package)
+        # download the sources from server0
+        client.run("install hello/0.1@ -r server0")
+        client.run("upload hello/0.1@ --all -r server1")
+        self.assertIn("Downloading conan_sources.tgz", client.out)
+        self.assertIn("Sources downloaded from 'server0'", client.out)
+
+        # install from server1 that has the sources, upload to server1
+        # Will not download sources, revision already in server
+        client.run("remove * -f")
+        client.run("install hello/0.1@ -r server1")
+        client.run("upload hello/0.1@ --all -r server1")
+        assert "hello/0.1#02da70a3eeda6a0f01a16b75607a2e73 already in server, skipping upload" in \
+               client.out
+        self.assertNotIn("Downloading conan_sources.tgz", client.out)
+        self.assertNotIn("Sources downloaded from 'server0'", client.out)
+
+        # install from server0 and build
+        # download sources from server0
+        client.run("remove * -f")
+        client.run("install hello/0.1@ -r server0 --build")
+        self.assertIn("Downloading conan_sources.tgz", client.out)
+        self.assertIn("Sources downloaded from 'server0'", client.out)

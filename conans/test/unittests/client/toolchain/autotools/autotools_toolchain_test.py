@@ -69,6 +69,7 @@ def test_cppstd():
          "compiler.libcxx": "libstdc++11",
          "compiler.version": "7.1",
          "cppstd": "17"})
+    conanfile.settings_build = MockSettings({"os": "Linux", "arch": "x86"})
     be = AutotoolsToolchain(conanfile)
     env = be.environment()
     assert "-std=c++17" not in env["CXXFLAGS"]
@@ -100,6 +101,7 @@ def test_cppstd():
 def test_fpic():
     conanfile = ConanFileMock()
     conanfile.settings = MockSettings({"os": "Linux"})
+    conanfile.settings_build = MockSettings({"os": "Linux"})
     conanfile.options = MockOptions({"fPIC": True})
     be = AutotoolsToolchain(conanfile)
     be.environment()
@@ -162,6 +164,7 @@ def test_libcxx(config):
          "compiler.libcxx": libcxx,
          "compiler.version": "7.1",
          "compiler.cppstd": "17"})
+    conanfile.settings_build = conanfile.settings
     be = AutotoolsToolchain(conanfile)
     assert be.libcxx == expected_flag
     env = be.environment()
@@ -178,6 +181,7 @@ def test_cxx11_abi_define():
          "compiler.libcxx": "libstdc++",
          "compiler.version": "7.1",
          "compiler.cppstd": "17"})
+    conanfile.settings_build = conanfile.settings
     be = AutotoolsToolchain(conanfile)
     assert be.gcc_cxx11_abi == "_GLIBCXX_USE_CXX11_ABI=0"
     env = be.environment()
@@ -208,6 +212,7 @@ def test_architecture_flag(config):
          "os": "Macos",
          "compiler": "gcc",
          "arch": arch})
+    conanfile.settings_build = conanfile.settings
     be = AutotoolsToolchain(conanfile)
     assert be.arch_flag == expected
     env = be.environment()
@@ -224,6 +229,7 @@ def test_build_type_flag():
          "os": "Windows",
          "compiler": "Visual Studio",
          "arch": "x86_64"})
+    conanfile.settings_build = conanfile.settings
     be = AutotoolsToolchain(conanfile)
     assert be.build_type_flags == ["-Zi", "-Ob0", "-Od"]
     env = be.environment()
@@ -254,11 +260,13 @@ def test_apple_arch_flag():
 
     # Only set when crossbuilding
     conanfile = ConanFileMock()
+    conanfile.conf = {"tools.apple:sdk_path": "/path/to/sdk"}
     conanfile.settings = MockSettings(
         {"build_type": "Debug",
-         "os": "iOS",
+         "os": "Macos",
          "os.version": "14",
-         "arch": "armv8"})
+         "arch": "x86_64"})
+    conanfile.settings_build = MockSettings({"os": "Macos", "arch": "x86_64"})
     be = AutotoolsToolchain(conanfile)
     assert be.apple_arch_flag is None
 
@@ -272,6 +280,7 @@ def test_apple_min_os_flag():
          "os": "Macos",
          "os.version": "14",
          "arch": "armv8"})
+    conanfile.settings_build = MockSettings({"os": "Macos", "arch": "armv8"})
     be = AutotoolsToolchain(conanfile)
     expected = "-mmacosx-version-min=14"
     assert be.apple_min_version_flag == expected
@@ -304,9 +313,15 @@ def test_apple_isysrootflag():
 
     # Only set when crossbuilding
     conanfile = ConanFileMock()
+    conanfile.conf = {"tools.apple:sdk_path": "/path/to/sdk"}
     conanfile.settings = MockSettings(
         {"build_type": "Debug",
-         "os": "iOS",
+         "os": "Macos",
+         "os.version": "14",
+         "arch": "armv8"})
+    conanfile.settings_build = MockSettings(
+        {"build_type": "Debug",
+         "os": "Macos",
          "os.version": "14",
          "arch": "armv8"})
     be = AutotoolsToolchain(conanfile)
@@ -321,6 +336,7 @@ def test_custom_defines():
          "os": "iOS",
          "os.version": "14",
          "arch": "armv8"})
+    conanfile.settings_build = MockSettings({"os": "Macos", "arch": "armv8"})
     be = AutotoolsToolchain(conanfile)
     be.defines = ["MyDefine1", "MyDefine2"]
     env = be.environment()
@@ -337,6 +353,7 @@ def test_custom_cxxflags():
          "os": "iOS",
          "os.version": "14",
          "arch": "armv8"})
+    conanfile.settings_build = MockSettings({"os": "Macos", "arch": "armv8"})
     be = AutotoolsToolchain(conanfile)
     be.cxxflags = ["MyFlag1", "MyFlag2"]
     env = be.environment()
@@ -356,6 +373,7 @@ def test_custom_cflags():
          "os": "iOS",
          "os.version": "14",
          "arch": "armv8"})
+    conanfile.settings_build = MockSettings({"os": "Macos", "arch": "armv8"})
     be = AutotoolsToolchain(conanfile)
     be.cflags = ["MyFlag1", "MyFlag2"]
     env = be.environment()
@@ -375,6 +393,7 @@ def test_custom_ldflags():
          "os": "iOS",
          "os.version": "14",
          "arch": "armv8"})
+    conanfile.settings_build = MockSettings({"os": "Macos", "arch": "armv8"})
     be = AutotoolsToolchain(conanfile)
     be.ldflags = ["MyFlag1", "MyFlag2"]
     env = be.environment()

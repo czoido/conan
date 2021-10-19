@@ -5,20 +5,9 @@ import uuid
 from collections import defaultdict
 from threading import Lock
 
-from conans.client.output import ScopedOutput
+from conans.cli.output import ScopedOutput, ConanOutput
 from conans.client.tools.files import chdir
 from conans.errors import ConanException, NotFoundException
-from conans.util.files import save
-
-attribute_checker_hook = """
-def pre_export(output, conanfile, conanfile_path, reference, **kwargs):
-    # Check basic meta-data
-    for field in ["url", "license", "description"]:
-        field_value = getattr(conanfile, field, None)
-        if not field_value:
-            output.warn("Conanfile doesn't have '%s'. It is recommended to add it as attribute"
-                        % field)
-"""
 
 valid_hook_methods = ["pre_export", "post_export",
                       "pre_source", "post_source",
@@ -35,12 +24,11 @@ valid_hook_methods = ["pre_export", "post_export",
 
 class HookManager(object):
 
-    def __init__(self, hooks_folder, hook_names, output):
+    def __init__(self, hooks_folder, hook_names):
         self._hooks_folder = hooks_folder
         self._hook_names = hook_names
         self.hooks = defaultdict(list)
-        self.output = output
-        self._attribute_checker_path = os.path.join(self._hooks_folder, "attribute_checker.py")
+        self._output = ConanOutput()
         self._mutex = Lock()
 
     def execute(self, method_name, **kwargs):
@@ -48,8 +36,6 @@ class HookManager(object):
         # concurrent (e.g. upload --parallel)
         self._mutex.acquire()
         try:
-            if not os.path.exists(self._attribute_checker_path):
-                save(self._attribute_checker_path, attribute_checker_hook)
             if not self.hooks:
                 self.load_hooks()
         finally:
@@ -59,8 +45,8 @@ class HookManager(object):
             "Method '{}' not in valid hooks methods".format(method_name)
         for name, method in self.hooks[method_name]:
             try:
-                output = ScopedOutput("[HOOK - %s] %s()" % (name, method_name), self.output)
-                method(output=output, **kwargs)
+                scoped_output = ScopedOutput("[HOOK - %s] %s()" % (name, method_name), self._output)
+                method(output=scoped_output, **kwargs)
             except Exception as e:
                 raise ConanException("[HOOK - %s] %s(): %s" % (name, method_name, str(e)))
 
@@ -79,7 +65,7 @@ class HookManager(object):
                 if hook_method:
                     self.hooks[method].append((hook_name, hook_method))
         except NotFoundException:
-            self.output.warn("Hook '%s' not found in %s folder. Please remove hook from conan.conf "
+            self._output.warning("Hook '%s' not found in %s folder. Please remove hook from conan.conf "
                              "or include it inside the hooks folder." % (hook_name,
                                                                          self._hooks_folder))
         except Exception as e:

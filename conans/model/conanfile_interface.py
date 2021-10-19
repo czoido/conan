@@ -26,6 +26,10 @@ class ConanFileInterface:
         return not self.__eq__(other)
 
     @property
+    def options(self):
+        return self._conanfile.options
+
+    @property
     def package_folder(self):
         return self._conanfile.package_folder
 
@@ -50,8 +54,8 @@ class ConanFileInterface:
         return self._conanfile.cpp_info
 
     @property
-    def new_cpp_info(self):
-        return self._conanfile.new_cpp_info
+    def user_info(self):
+        return self._conanfile.user_info
 
     @property
     def settings(self):
@@ -60,10 +64,6 @@ class ConanFileInterface:
     @property
     def settings_build(self):
         return self._conanfile.settings_build
-
-    @property
-    def options(self):
-        return self._conanfile.options
 
     @property
     def context(self):
@@ -78,5 +78,13 @@ class ConanFileInterface:
         return self._conanfile.dependencies
 
     @property
+    def folders(self):
+        return self._conanfile.folders
+
+    @property
     def is_build_context(self):
         return self._conanfile.context == CONTEXT_BUILD
+
+    @property
+    def package_type(self):
+        return self._conanfile.package_type

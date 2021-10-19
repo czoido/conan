@@ -3,37 +3,19 @@ import shutil
 
 from conans import DEFAULT_REVISION_V1
 from conans.migrations import Migrator
-from conans.model.version import Version
 from conans.paths import PACKAGES_FOLDER
 from conans.server.revision_list import RevisionList
 from conans.server.store.server_store import REVISIONS_FILE
-from conans.util.files import list_folder_subdirs, mkdir, rmdir, save
+from conans.util.files import list_folder_subdirs, mkdir, save
 from conans.util.log import logger
 
 
 class ServerMigrator(Migrator):
 
-    def __init__(self, conf_path, store_path, current_version, out, force_migrations):
+    def __init__(self, conf_path, store_path, current_version, force_migrations):
         self.force_migrations = force_migrations
         self.store_path = store_path
-        super(ServerMigrator, self).__init__(conf_path, current_version, out)
-
-    def _make_migrations(self, old_version):
-        # ############### FILL THIS METHOD WITH THE REQUIRED ACTIONS ##############
-
-        if old_version < Version("1.10.0"):
-            if not os.path.exists(self.store_path) or not os.listdir(self.store_path):
-                # Empty storage
-                return
-            try:
-                self.migrate_to_revisions_layout()
-            except Exception as e:
-                print("An error ocurred during the migration, please restore the backup directory "
-                      "and try again")
-                print(e)
-                exit(1)
-
-        # ########################################################################
+        super(ServerMigrator, self).__init__(conf_path, current_version)
 
     def migrate_to_revisions_layout(self):
         # .conan/data/lib/1.0/user/channel/export/*
