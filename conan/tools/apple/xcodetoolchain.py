@@ -15,7 +15,6 @@ class XcodeToolchain:
         self._namespace = namespace
         build_type = self._conanfile.settings.get_safe("build_type")
 
-
         self.defines = []
 
         # cxxflags, cflags

@@ -65,6 +65,7 @@ class XcodeDeps(object):
     _all_xconfig = textwrap.dedent("""\
         // Conan XcodeDeps generated file
         // Includes all direct dependencies
+        #include? "xcodetoolchain.xcconfig"
         """)
 
     def __init__(self, conanfile):
