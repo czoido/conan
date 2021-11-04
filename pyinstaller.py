@@ -88,7 +88,7 @@ def pyinstall(source_folder):
     conan_server_path = os.path.join(source_folder, 'conans', 'conan_server.py')
     hidden = ("--hidden-import=glob --hidden-import=conan.tools.microsoft "
               "--hidden-import=conan.tools.gnu --hidden-import=conan.tools.cmake "
-              "--hidden-import=conan.tools.meson")
+              "--hidden-import=conan.tools.meson --collect-submodules conans.cli.commands")
     if platform.system() != "Windows":
         hidden += " --hidden-import=setuptools.msvc"
         win_ver = ""

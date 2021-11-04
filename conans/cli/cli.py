@@ -19,6 +19,7 @@ from conans.client.conf.config_installer import is_config_install_scheduled
 from conans.errors import ConanException, ConanInvalidConfiguration, ConanMigrationError
 from conans.util.files import exception_message_safe
 from conans.util.log import logger
+from pathlib import Path
 
 
 CLI_V1_COMMANDS = [
@@ -46,10 +47,22 @@ class Cli(object):
             self._add_command("conans.cli.commands.{}".format(module_name), module_name)
         user_commands_path = os.path.join(self._conan_api.cache_folder, "commands")
         sys.path.append(user_commands_path)
-        for module in pkgutil.iter_modules([user_commands_path]):
-            module_name = module[1]
+        for module in self._load_user_modules(user_commands_path):
+            module_name = module.__name__
             if module_name.startswith("cmd_"):
                 self._add_command(module_name, module_name.replace("cmd_", ""))
+
+    @staticmethod
+    def _load_user_modules(path):
+        modules = []
+        for f in Path(path).glob('*.py'):
+            name = f.stem
+            spec = importlib.util.spec_from_file_location(name, str(f))
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[name] = module
+            spec.loader.exec_module(module)
+            modules.append(module)
+        return modules
 
     def _add_command(self, import_path, method_name):
         try:
