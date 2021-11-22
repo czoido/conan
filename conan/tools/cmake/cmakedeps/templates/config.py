@@ -31,7 +31,6 @@ class ConfigTemplate(CMakeDepsFileTemplate):
                 "file_name": self.file_name,
                 "pkg_name": self.pkg_name,
                 "config_suffix": self.config_suffix,
-                "target_namespace": self.target_namespace,
                 "check_components_exist": self.cmakedeps.check_components_exist,
                 "targets_include_file": targets_include}
 

@@ -28,7 +28,7 @@ class TargetsTemplate(CMakeDepsFileTemplate):
         cmake_target_aliases = self.conanfile.cpp_info.\
             get_property("cmake_target_aliases", "CMakeDeps") or dict()
 
-        target = "%s::%s" % (self.target_namespace, self.global_target_name)
+        target = "%s" % self.global_target_name
         cmake_target_aliases = {alias: target for alias in cmake_target_aliases}
 
         cmake_component_target_aliases = dict()
@@ -37,12 +37,10 @@ class TargetsTemplate(CMakeDepsFileTemplate):
                 self.conanfile.cpp_info.components[comp_name].\
                 get_property("cmake_target_aliases", "CMakeDeps") or dict()
 
-            target = "%s::%s" % (self.target_namespace,
-                                 self.get_component_alias(self.conanfile, comp_name))
+            target = "%s" % self.get_component_alias(self.conanfile, comp_name)
             cmake_component_target_aliases[comp_name] = {alias: target for alias in aliases}
 
         ret = {"pkg_name": self.pkg_name,
-               "target_namespace": self.target_namespace,
                "global_target_name": self.global_target_name,
                "file_name": self.file_name,
                "data_pattern": data_pattern,

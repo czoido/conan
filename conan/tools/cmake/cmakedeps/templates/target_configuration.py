@@ -22,7 +22,6 @@ class TargetConfigurationTemplate(CMakeDepsFileTemplate):
         deps_targets_names = self.get_deps_targets_names() \
             if not self.conanfile.is_build_context else []
         return {"pkg_name": self.pkg_name,
-                "target_namespace": self.target_namespace,
                 "global_target_name": self.global_target_name,
                 "config_suffix": self.config_suffix,
                 "deps_targets_names": ";".join(deps_targets_names),
@@ -172,11 +171,10 @@ class TargetConfigurationTemplate(CMakeDepsFileTemplate):
                 else:
                     req = visible_host[dep_name]
 
-                dep_name = self.get_target_namespace(req)
                 component_name = self.get_component_alias(req, component_name)
-                ret.append("{}::{}".format(dep_name, component_name))
+                ret.append("{}".format(component_name))
         elif visible_host_direct:
             # Regular external "conanfile.requires" declared, not cpp_info requires
-            ret = ["{p}::{n}".format(p=self.get_target_namespace(r), n=self.get_global_target_name(r))
+            ret = ["{}".format(self.get_global_target_name(r))
                    for r in visible_host_direct.values()]
         return ret
