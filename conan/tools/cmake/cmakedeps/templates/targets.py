@@ -63,15 +63,15 @@ class TargetsTemplate(CMakeDepsFileTemplate):
 
         # Create the targets for all the components
         foreach(_COMPONENT {{ '${' + pkg_name + '_COMPONENT_NAMES' + '}' }} )
-            if(NOT TARGET {{ target_namespace }}::${_COMPONENT})
-                add_library({{ target_namespace }}::${_COMPONENT} INTERFACE IMPORTED)
-                conan_message(STATUS "Conan: Component target declared '{{ target_namespace }}::${_COMPONENT}'")
+            if(NOT TARGET {{ pkg_name }}::${_COMPONENT})
+                add_library({{ pkg_name }}::${_COMPONENT} INTERFACE IMPORTED)
+                conan_message(STATUS "Conan: Component target declared '{{ pkg_name }}::${_COMPONENT}'")
             endif()
         endforeach()
 
-        if(NOT TARGET {{ target_namespace }}::{{ global_target_name }})
-            add_library({{ target_namespace }}::{{ global_target_name }} INTERFACE IMPORTED)
-            conan_message(STATUS "Conan: Target declared '{{ target_namespace }}::{{ global_target_name }}'")
+        if(NOT TARGET {{ global_target_name }})
+            add_library({{ global_target_name }} INTERFACE IMPORTED)
+            conan_message(STATUS "Conan: Target declared '{{ global_target_name }}'")
         endif()
 
         {%- for alias, target in cmake_target_aliases.items() %}

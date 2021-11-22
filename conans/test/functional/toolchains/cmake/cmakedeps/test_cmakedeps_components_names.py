@@ -314,15 +314,14 @@ def test_different_namespace(setup_client_with_greetings):
     client = setup_client_with_greetings
 
     package_info = textwrap.dedent("""
-        self.cpp_info.set_property("cmake_target_namespace", "MyChat")
-        self.cpp_info.set_property("cmake_target_name", "MyGlobalChat")
+        self.cpp_info.set_property("cmake_target_name", "MyChat::MyGlobalChat")
         self.cpp_info.set_property("cmake_file_name", "MyChat")
 
-        self.cpp_info.components["sayhello"].set_property("cmake_target_name", "MySay")
+        self.cpp_info.components["sayhello"].set_property("cmake_target_name", "MyChat::MySay")
 
         self.cpp_info.components["sayhello"].requires = ["greetings::hello"]
         self.cpp_info.components["sayhello"].libs = ["sayhello"]
-        self.cpp_info.components["sayhellobye"].set_property("cmake_target_name", "MySayBye")
+        self.cpp_info.components["sayhellobye"].set_property("cmake_target_name", "MyChat::MySayBye")
 
         self.cpp_info.components["sayhellobye"].requires = ["sayhello", "greetings::bye"]
         self.cpp_info.components["sayhellobye"].libs = ["sayhellobye"]

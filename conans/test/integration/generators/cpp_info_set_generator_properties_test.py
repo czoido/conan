@@ -430,3 +430,23 @@ def test_pkg_config_names(setup_client):
 
     with open(os.path.join(client.current_folder, "mypkg-config-name.pc")) as gen_file:
         assert "mypkg-config-name" in gen_file.read()
+
+
+def test_set_properties_simplified():
+    client = TestClient()
+    conanfile = textwrap.dedent("""
+        from conans import ConanFile
+        class LibcurlConan(ConanFile):
+            name = "libcurl"
+            version = "0.1"
+            settings = "os", "arch", "compiler", "build_type"
+            def package_info(self):
+                self.cpp_info.set_property("cmake_target_name", "CURLNAMESPACE::CURLNAME")
+                self.cpp_info.components["curl"].libs = ["libcurl"]
+    """)
+    client.save({"conanfile.py": conanfile})
+    client.run("create .")
+    client.run("install libcurl/0.1@ -g CMakeDeps")
+    with open(os.path.join(client.current_folder, "libcurl-release-x86_64-data.cmake")) as data_cmake:
+        # if not defined, we take the pkg name as namespace
+        assert "set(libcurl_COMPONENT_NAMES ${libcurl_COMPONENT_NAMES} libcurl::curl)" in data_cmake.read()
