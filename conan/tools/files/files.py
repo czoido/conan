@@ -1,4 +1,3 @@
-import configparser
 import errno
 import os
 import platform
@@ -201,6 +200,7 @@ def load_toolchain_args(generators_folder=None, namespace=None):
         else CONAN_TOOLCHAIN_ARGS_FILE
     args_file = os.path.join(generators_folder, namespace_name) if generators_folder \
         else namespace_name
+    import configparser
     toolchain_config = configparser.ConfigParser()
     toolchain_file = toolchain_config.read(args_file)
     if not toolchain_file:
@@ -228,6 +228,7 @@ def save_toolchain_args(content, generators_folder=None, namespace=None):
         else CONAN_TOOLCHAIN_ARGS_FILE
     args_file = os.path.join(generators_folder, namespace_name) if generators_folder \
         else namespace_name
+    import configparser
     toolchain_config = configparser.ConfigParser()
     toolchain_config[CONAN_TOOLCHAIN_ARGS_SECTION] = content_
     with open(args_file, "w") as f:
