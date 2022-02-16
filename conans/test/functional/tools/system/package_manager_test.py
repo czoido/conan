@@ -110,3 +110,24 @@ def test_brew_install_install_mode():
         """)})
     client.run("create . test/1.0@ -c tools.system.package_manager:mode=install", assert_error=True)
     assert "Error: No formulae found in taps." in client.out
+
+
+@pytest.mark.tool_apt_get
+@pytest.mark.skipif(platform.system() != "Linux", reason="Requires apt")
+@pytest.mark.skipif(six.PY2, reason="Does not pass on Py2 with Pytest")
+def test_apt_modecheck_not_installing():
+    client = TestClient()
+    client.save({"conanfile.py": textwrap.dedent("""
+        from conans import ConanFile
+        from conan.tools.system.package_manager import Apt
+        class MyPkg(ConanFile):
+            settings = "arch", "os"
+            def system_requirements(self):
+                apt = Apt(self)
+                apt.install(["libx11-dev", "libxaw7-dev"])
+        """)})
+    client.run("create . test/1.0@", assert_error=True)
+    assert "System requirements: 'libx11-dev, libxaw7-dev' are missing but can't install because " \
+           "tools.system.package_manager:mode is 'check'.Please update packages manually or set " \
+           "'tools.system.package_manager:mode' to 'install' in the [conf] section of the profile, " \
+           "or in the command line using '-c tools.system.package_manager:mode=install'"
