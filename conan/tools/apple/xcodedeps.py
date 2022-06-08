@@ -94,21 +94,16 @@ class XcodeDeps(object):
     _dep_xconfig = textwrap.dedent("""\
         // Conan XcodeDeps generated file for {{pkg_name}}::{{comp_name}}
         // Includes all configurations for each dependency
-        {% for dep in deps %}
-        // Includes for {{dep[0]}}::{{dep[1]}} dependency
-        #include "conan_{{dep[0]}}_{{dep[1]}}.xcconfig"
-        {% endfor %}
-        #include "{{dep_xconfig_filename}}"
 
-        HEADER_SEARCH_PATHS = $(inherited) $(HEADER_SEARCH_PATHS_{{pkg_name}}_{{comp_name}})
-        GCC_PREPROCESSOR_DEFINITIONS = $(inherited) $(GCC_PREPROCESSOR_DEFINITIONS_{{pkg_name}}_{{comp_name}})
-        OTHER_CFLAGS = $(inherited) $(OTHER_CFLAGS_{{pkg_name}}_{{comp_name}})
-        OTHER_CPLUSPLUSFLAGS = $(inherited) $(OTHER_CPLUSPLUSFLAGS_{{pkg_name}}_{{comp_name}})
-        FRAMEWORK_SEARCH_PATHS = $(inherited) $(FRAMEWORK_SEARCH_PATHS_{{pkg_name}}_{{comp_name}})
+        HEADER_SEARCH_PATHS = $(inherited) $(HEADER_SEARCH_PATHS_{{pkg_name}}_{{comp_name}}){% for pkg_name, comp_name in reqs %} $(HEADER_SEARCH_PATHS_{{pkg_name}}_{{comp_name}}){% endfor %}
+        GCC_PREPROCESSOR_DEFINITIONS = $(inherited) $(GCC_PREPROCESSOR_DEFINITIONS_{{pkg_name}}_{{comp_name}}){% for pkg_name, comp_name in reqs %} $(GCC_PREPROCESSOR_DEFINITIONS_{{pkg_name}}_{{comp_name}}){% endfor %}
+        OTHER_CFLAGS = $(inherited) $(OTHER_CFLAGS_{{pkg_name}}_{{comp_name}}){% for pkg_name, comp_name in reqs %} $(OTHER_CFLAGS_{{pkg_name}}_{{comp_name}}){% endfor %}
+        OTHER_CPLUSPLUSFLAGS = $(inherited) $(OTHER_CPLUSPLUSFLAGS_{{pkg_name}}_{{comp_name}}){% for pkg_name, comp_name in reqs %} $(OTHER_CPLUSPLUSFLAGS_{{pkg_name}}_{{comp_name}}){% endfor %}
+        FRAMEWORK_SEARCH_PATHS = $(inherited) $(FRAMEWORK_SEARCH_PATHS_{{pkg_name}}_{{comp_name}}){% for pkg_name, comp_name in reqs %} $(FRAMEWORK_SEARCH_PATHS_{{pkg_name}}_{{comp_name}}){% endfor %}
 
         // Link options for {{pkg_name}}_{{comp_name}}
-        LIBRARY_SEARCH_PATHS = $(inherited) $(LIBRARY_SEARCH_PATHS_{{pkg_name}}_{{comp_name}})
-        OTHER_LDFLAGS = $(inherited) $(OTHER_LDFLAGS_{{pkg_name}}_{{comp_name}})
+        LIBRARY_SEARCH_PATHS = $(inherited) $(LIBRARY_SEARCH_PATHS_{{pkg_name}}_{{comp_name}}){% for pkg_name, comp_name in reqs %} $(LIBRARY_SEARCH_PATHS_{{pkg_name}}_{{comp_name}}){% endfor %}
+        OTHER_LDFLAGS = $(inherited) $(OTHER_LDFLAGS_{{pkg_name}}_{{comp_name}}){% for pkg_name, comp_name in reqs %} $(OTHER_LDFLAGS_{{pkg_name}}_{{comp_name}}){% endfor %}
          """)
 
     _all_xconfig = textwrap.dedent("""\
@@ -184,13 +179,23 @@ class XcodeDeps(object):
             content_multi = self._dep_xconfig
             content_multi = Template(content_multi).render({"pkg_name": pkg_name,
                                                             "comp_name": comp_name,
-                                                            "dep_xconfig_filename": dep_xconfig_filename,
-                                                            "deps": reqs})
+                                                            "reqs": reqs})
 
+        string_search = '// Includes all configurations for each dependency'
         if dep_xconfig_filename not in content_multi:
-            content_multi = content_multi.replace('.xcconfig"',
-                                                  '.xcconfig"\n#include "{}"'.format(dep_xconfig_filename),
+            content_multi = content_multi.replace(string_search,
+                                                  '{}\n#include "{}"'.format(string_search, dep_xconfig_filename),
                                                   1)
+
+        reqs_files_names = ["conan_{}_{}{}.xcconfig".format(req_pkg_name, req_comp_name,
+                                                      _xcconfig_settings_filename(self._conanfile.settings))
+                            for req_pkg_name, req_comp_name in reqs]
+
+        for reqs_file_name in reqs_files_names:
+            if reqs_file_name not in content_multi:
+                content_multi = content_multi.replace(string_search,
+                                                      '{}\n#include "{}"'.format(string_search,
+                                                                                 reqs_file_name), 1)
 
         return content_multi
 
