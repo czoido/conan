@@ -252,6 +252,21 @@ class XcodeDeps(object):
 
             include_components_names = []
             if dep.cpp_info.has_components:
+                def get_transitive_components(root_cpp_info, components):
+                    transitive_components = components
+                    if components:
+                        component_cpp_infos = []
+                        for component in components:
+                            if component.requires is not None:
+                                component_cpp_infos.append(component)
+                                for require in component.requires:
+                                    component_cpp_info = root_cpp_info.components.get(require)
+                                    if component_cpp_info is not None:
+                                        component_cpp_infos.append(component_cpp_info)
+                        return transitive_components.extend(get_transitive_components(root_cpp_info, component_cpp_infos))
+                    return transitive_components
+
+                transitive_components_list = get_transitive_components(dep.cpp_info, [req_cpp_info for _, req_cpp_info in dep.cpp_info.get_sorted_components().items()])
                 for comp_name, comp_cpp_info in dep.cpp_info.get_sorted_components().items():
                     component_deps = []
                     for req in comp_cpp_info.requires:
