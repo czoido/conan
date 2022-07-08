@@ -183,9 +183,7 @@ class TargetConfigurationTemplate(CMakeDepsFileTemplate):
         ret = []
         sorted_comps = self.conanfile.cpp_info.get_sorted_components()
         for comp_name, comp in sorted_comps.items():
-            use_component = comp_name in self.require.components if self.require.components is not None else True
-            if use_component:
-                ret.append(self.get_component_alias(self.conanfile, comp_name))
+            ret.append(self.get_component_alias(self.conanfile, comp_name))
         ret.reverse()
         return ret
 
