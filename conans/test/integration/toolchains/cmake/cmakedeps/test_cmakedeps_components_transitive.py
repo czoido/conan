@@ -8,9 +8,9 @@ from conans.test.utils.tools import TestClient
 
 def test_cmakedeps_propagate_components():
     """
-    lib_a: has three components cmp1, cmp2, cmp3
-    lib_b --> libA cmp1
-    lib_c --> libA cmp2
+    lib_a: has four components cmp1, cmp2, cmp3, cmp4
+    lib_b --> uses libA cmp1, cmp3 but cpp_info.requires only cmp1
+    lib_c --> libA cmp2 and cpp_info.requires also cmp1
     consumer --> libB, libC
     """
     client = TestClient()
@@ -63,14 +63,14 @@ def test_cmakedeps_propagate_components():
             exports_sources = "include/*"
 
             def requirements(self):
-                self.requires("lib_a/1.0", components=["{component}"])
+                self.requires("lib_a/1.0", components={req_comps})
 
             def package(self):
                 copy(self, "*.h", os.path.join(self.source_folder, "include"),
                                   os.path.join(self.package_folder, "include"))
 
             def package_info(self):
-                self.cpp_info.requires = ["lib_a::{component}"]
+                self.cpp_info.requires = {cppinfo_comps}
         """)
 
     lib_include = textwrap.dedent("""
@@ -80,14 +80,13 @@ def test_cmakedeps_propagate_components():
         void lib_{name}(){{ {components} }};
         """)
 
-
     client.save({
-        'lib_b/conanfile.py': lib.format(name="b", component="cmp1"),
+        'lib_b/conanfile.py': lib.format(name="b", req_comps='["cmp1", "cmp3"]', cppinfo_comps='["lib_a::cmp1"]'),
         'lib_b/include/lib_b.h': lib_include.format(name="b", include='"cmp1.h"', components='cmp1();'),
     })
 
     client.save({
-        'lib_c/conanfile.py': lib.format(name="c", component="cmp2"),
+        'lib_c/conanfile.py': lib.format(name="c", req_comps='["cmp2"]', cppinfo_comps='["lib_a::cmp2"]'),
         'lib_c/include/lib_c.h': lib_include.format(name="c", include='"cmp2.h"', components='cmp2();'),
     })
 
@@ -115,8 +114,8 @@ def test_cmakedeps_propagate_components():
     """
     By default if you specify self.requires("lib_a/1.0", components=["cmp1"])
     That would go as well to the self.cpp_info.requires and mean: self.cpp_info.requires = ["top::cmp1"]
-    But there are cases that you may require several components but decide to only make available for
-    consumers with the cpp_info some of them
+    But there are cases that you may require several components but decide to only make link in the
+    consumers with some of them... like if you use boost::regex in your build but consumers link with boost::headers
     """
 
     assert "lib_a::cmp2" not in client.load(os.path.join("consumer", "lib_a-release-x86_64-data.cmake"))
