@@ -8,7 +8,7 @@ from conans.test.utils.tools import TestClient
 
 def test_cmakedeps_propagate_components():
     """
-    lib_a: has two components cmp1, cmp2, cmp3
+    lib_a: has three components cmp1, cmp2, cmp3
     lib_b --> libA cmp1
     lib_c --> libA cmp2
     consumer --> libB, libC
@@ -63,12 +63,14 @@ def test_cmakedeps_propagate_components():
             exports_sources = "include/*"
 
             def requirements(self):
-                self.requires("lib_a/1.0", components={components})
+                self.requires("lib_a/1.0", components=["{component}"])
 
             def package(self):
                 copy(self, "*.h", os.path.join(self.source_folder, "include"),
                                   os.path.join(self.package_folder, "include"))
 
+            def package_info(self):
+                self.cpp_info.requires = ["lib_a::{component}"]
         """)
 
     lib_include = textwrap.dedent("""
@@ -80,12 +82,12 @@ def test_cmakedeps_propagate_components():
 
 
     client.save({
-        'lib_b/conanfile.py': lib.format(name="b", components='["cmp1"]'),
+        'lib_b/conanfile.py': lib.format(name="b", component="cmp1"),
         'lib_b/include/lib_b.h': lib_include.format(name="b", include='"cmp1.h"', components='cmp1();'),
     })
 
     client.save({
-        'lib_c/conanfile.py': lib.format(name="c", components='["cmp2"]'),
+        'lib_c/conanfile.py': lib.format(name="c", component="cmp2"),
         'lib_c/include/lib_c.h': lib_include.format(name="c", include='"cmp2.h"', components='cmp2();'),
     })
 
