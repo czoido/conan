@@ -166,22 +166,20 @@ class ConfigDataTemplate(CMakeDepsFileTemplate):
                                                                   "direct": True})
         for comp_name, comp in sorted_comps.items():
             # TODO: Read a property from the component to discard this is shared
-            use_component = comp_name in self.require.components if self.require.components is not None else True
-            if use_component:
-                deps_cpp_cmake = _TargetDataContext(comp, pfolder_var_name,
-                                                    self.conanfile.package_folder, self.require,
-                                                    self.cmake_package_type, self.is_host_windows)
-                public_comp_deps = []
-                for require in comp.requires:
-                    if "::" in require:  # Points to a component of a different package
-                        pkg, cmp_name = require.split("::")
-                        req = direct_visible_host[pkg]
-                        public_comp_deps.append(self.get_component_alias(req, cmp_name))
-                    else:  # Points to a component of same package
-                        public_comp_deps.append(self.get_component_alias(self.conanfile, require))
-                deps_cpp_cmake.public_deps = " ".join(public_comp_deps)
-                component_target_name = self.get_component_alias(self.conanfile, comp_name)
-                ret.append((component_target_name, deps_cpp_cmake))
+            deps_cpp_cmake = _TargetDataContext(comp, pfolder_var_name,
+                                                self.conanfile.package_folder, self.require,
+                                                self.cmake_package_type, self.is_host_windows)
+            public_comp_deps = []
+            for require in comp.requires:
+                if "::" in require:  # Points to a component of a different package
+                    pkg, cmp_name = require.split("::")
+                    req = direct_visible_host[pkg]
+                    public_comp_deps.append(self.get_component_alias(req, cmp_name))
+                else:  # Points to a component of same package
+                    public_comp_deps.append(self.get_component_alias(self.conanfile, require))
+            deps_cpp_cmake.public_deps = " ".join(public_comp_deps)
+            component_target_name = self.get_component_alias(self.conanfile, comp_name)
+            ret.append((component_target_name, deps_cpp_cmake))
         ret.reverse()
         return ret
 
