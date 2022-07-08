@@ -11,10 +11,11 @@ class Requirement:
     """
     def __init__(self, ref, *, headers=None, libs=None, build=False, run=None, visible=None,
                  transitive_headers=None, transitive_libs=None, test=None, package_id_mode=None,
-                 force=None, override=None, direct=None, options=None):
+                 force=None, override=None, direct=None, options=None, components=None):
         # * prevents the usage of more positional parameters, always ref + **kwargs
         # By default this is a generic library requirement
         self.ref = ref
+        self.components = components
         self._headers = headers  # This dependent node has headers that must be -I<headers-path>
         self._libs = libs
         self._build = build  # This dependent node is a build tool that runs at build time only
