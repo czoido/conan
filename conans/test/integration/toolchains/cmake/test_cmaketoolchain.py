@@ -733,7 +733,7 @@ def test_pass_option_cache_variable():
                 default_options = {"build_tests": True}
                 def generate(self):
                     toolchain = CMakeToolchain(self)
-                    toolchain.cache_variables["BUILD_tests"] = self.options.build_tests
+                    toolchain.cache_variables["BUILD_TESTS"] = self.options.build_tests
                     toolchain.generate()
             """)
     client.save({"conanfile.py": conanfile})
