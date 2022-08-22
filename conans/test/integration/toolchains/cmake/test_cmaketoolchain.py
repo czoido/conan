@@ -719,3 +719,23 @@ def test_presets_ninja_msvc(arch, arch_toolset):
     presets = json.loads(client.load("build/14/generators/CMakePresets.json"))
     assert "architecture" in presets["configurePresets"][0]
     assert "toolset" not in presets["configurePresets"][0]
+
+
+def test_pass_option_cache_variable():
+    client = TestClient()
+    conanfile = textwrap.dedent("""
+            from conan import ConanFile
+            from conan.tools.cmake import CMakeToolchain
+
+            class Conan(ConanFile):
+                settings = "os", "arch", "compiler", "build_type"
+                options = {"build_tests": [True, False]}
+                default_options = {"build_tests": True}
+                def generate(self):
+                    toolchain = CMakeToolchain(self)
+                    toolchain.cache_variables["BUILD_tests"] = self.options.build_tests
+                    toolchain.generate()
+            """)
+    client.save({"conanfile.py": conanfile})
+    client.run("install . ")
+    print(client.out)
