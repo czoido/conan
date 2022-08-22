@@ -17,6 +17,7 @@ from conan.tools.intel import IntelCC
 from conan.tools.microsoft import VCVars
 from conan.tools.microsoft.visual import vs_ide_version
 from conans.errors import ConanException
+from conans.model.options import PackageOption
 from conans.util.files import save
 
 
@@ -180,6 +181,7 @@ class CMakeToolchain(object):
                                                  toolchain_file or self.filename))
         cache_variables = {}
         for name, value in self.cache_variables.items():
+            value = value.value if isinstance(value, PackageOption) else value
             if isinstance(value, bool):
                 cache_variables[name] = "ON" if value else "OFF"
             else:
