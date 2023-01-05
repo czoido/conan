@@ -2,6 +2,8 @@ import json
 import sys
 
 from colorama import Fore, Style
+from rich.progress import TextColumn, BarColumn, DownloadColumn, TransferSpeedColumn, \
+    TimeRemainingColumn, Progress
 
 from conans.client.userio import color_enabled
 from conans.util.env import get_env
@@ -212,3 +214,21 @@ def cli_out_write(data, fg=None, bg=None, endline="\n", indentation=0):
         data = f"{' ' * indentation}{data}{endline}"
 
     sys.stdout.write(data)
+
+
+def progress_bar(chunks, total_size):
+
+    columns = (
+        TextColumn("[progress.description]{task.description}", justify="right"),
+        BarColumn(),
+        "[progress.percentage]{task.percentage:>3.1f}%",
+        DownloadColumn(),
+        TransferSpeedColumn(),
+        TimeRemainingColumn(),
+    )
+    progress = Progress(*columns)
+    task_id = progress.add_task("", total=total_size)
+    with progress:
+        for chunk in chunks:
+            yield chunk
+            progress.update(task_id, advance=len(chunk))

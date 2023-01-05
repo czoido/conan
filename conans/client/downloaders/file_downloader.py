@@ -3,7 +3,7 @@ import re
 import time
 
 
-from conan.api.output import ConanOutput
+from conan.api.output import ConanOutput, progress_bar
 from conans.client.rest import response_to_str
 from conans.errors import ConanException, NotFoundException, AuthenticationException, \
     ForbiddenException, ConanConnectionError, RequestErrorException
@@ -55,6 +55,11 @@ class FileDownloader:
             raise
 
     @staticmethod
+    def _response_chunks(response, size=1024 * 100):
+        for chunk in response.iter_content(size):
+            yield chunk
+
+    @staticmethod
     def _check_checksum(file_path, md5, sha1, sha256):
         if md5 is not None:
             check_with_algorithm_sum("md5", file_path, md5)
@@ -73,10 +78,8 @@ class FileDownloader:
             range_start = 0
 
         try:
-            print("BEGIN", "--------->>>>>", url)
             response = self._requester.get(url, stream=True, verify=verify_ssl, auth=auth,
                                            headers=headers)
-            print("END", "--------->>>>>", url)
         except Exception as exc:
             raise ConanException("Error downloading file %s: '%s'" % (url, exc))
 
@@ -110,11 +113,12 @@ class FileDownloader:
             description = "{} {}".format(action, os.path.basename(file_path))
             self._output.info(description)
 
-            chunk_size = 1024 * 100
+            chunks = progress_bar(self._response_chunks(response), total_size=total_length)
+
             total_downloaded_size = range_start
             mode = "ab" if range_start else "wb"
             with open(file_path, mode) as file_handler:
-                for chunk in response.iter_content(chunk_size):
+                for chunk in chunks:
                     file_handler.write(chunk)
                     total_downloaded_size += len(chunk)
 
