@@ -18,15 +18,18 @@ class CachingFileDownloader:
         self._file_downloader = FileDownloader(requester)
 
     def download(self, url, file_path, retry=2, retry_wait=0, verify_ssl=True, auth=None,
-                 overwrite=False, headers=None, md5=None, sha1=None, sha256=None):
+                 overwrite=False, headers=None, md5=None, sha1=None, sha256=None,
+                 progress=None):
         if self._download_cache:
             self._caching_download(url, file_path, retry=retry, retry_wait=retry_wait,
                                    verify_ssl=verify_ssl, auth=auth, overwrite=overwrite,
-                                   headers=headers, md5=md5, sha1=sha1, sha256=sha256)
+                                   headers=headers, md5=md5, sha1=sha1, sha256=sha256,
+                                   progress=progress)
         else:
             self._file_downloader.download(url, file_path, retry=retry, retry_wait=retry_wait,
                                            verify_ssl=verify_ssl, auth=auth, overwrite=overwrite,
-                                           headers=headers, md5=md5, sha1=sha1, sha256=sha256)
+                                           headers=headers, md5=md5, sha1=sha1, sha256=sha256,
+                                           progress=progress)
 
     _thread_locks = {}  # Needs to be shared among all instances
 

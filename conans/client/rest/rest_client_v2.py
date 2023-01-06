@@ -3,7 +3,7 @@ import os
 import time
 from threading import Thread
 
-from conan.api.output import ConanOutput
+from conan.api.output import ConanOutput, ConanProgress
 
 from conans.client.downloaders.caching_file_downloader import CachingFileDownloader
 from conans.client.rest.client_routes import ClientV2Router
@@ -146,22 +146,26 @@ class RestV2Methods(RestCommonMethods):
         downloader = CachingFileDownloader(self.requester, download_cache=download_cache)
         threads = []
 
-        for filename in sorted(files, reverse=True):
-            resource_url = urls[filename]
-            abs_path = os.path.join(dest_folder, filename)
-            os.makedirs(os.path.dirname(abs_path), exist_ok=True)  # filename in subfolder must exist
-            if parallel:
-                kwargs = {"url": resource_url, "file_path": abs_path, "retry": retry,
-                          "retry_wait": retry_wait, "verify_ssl": self.verify_ssl,
-                          "auth": self.auth}
-                thread = ExceptionThread(target=downloader.download, kwargs=kwargs)
-                threads.append(thread)
-                thread.start()
-            else:
-                downloader.download(url=resource_url, file_path=abs_path, auth=self.auth,
-                                    verify_ssl=self.verify_ssl, retry=retry, retry_wait=retry_wait)
-        for t in threads:
-            t.join()
+        progress = ConanProgress()
+        with progress._progress:
+            for filename in sorted(files, reverse=True):
+                resource_url = urls[filename]
+                abs_path = os.path.join(dest_folder, filename)
+                os.makedirs(os.path.dirname(abs_path), exist_ok=True)  # filename in subfolder must exist
+                file_bar = progress.create_bar(os.path.basename(abs_path))
+                if parallel:
+                    kwargs = {"url": resource_url, "file_path": abs_path, "retry": retry,
+                              "retry_wait": retry_wait, "verify_ssl": self.verify_ssl,
+                              "auth": self.auth, "progress": file_bar}
+                    thread = ExceptionThread(target=downloader.download, kwargs=kwargs)
+                    threads.append(thread)
+                    thread.start()
+                else:
+                    downloader.download(url=resource_url, file_path=abs_path, auth=self.auth,
+                                        verify_ssl=self.verify_ssl, retry=retry, retry_wait=retry_wait,
+                                        progress=file_bar)
+            for t in threads:
+                t.join()
 
     def remove_all_packages(self, ref):
         """ Remove all packages from the specified reference"""

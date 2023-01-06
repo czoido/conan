@@ -12,8 +12,7 @@ conanfile = textwrap.dedent("""
             version = "1.0"
 
             def source(self):
-                get(self, "https://github.com/adamstark/AudioFile/archive/1.1.0.tar.gz",
-                    destination=self.source_folder, strip_root=True)
+                pass
     """)
 
 def test_basic_parallel_download():

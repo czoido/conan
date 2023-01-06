@@ -1,3 +1,4 @@
+import functools
 import json
 import sys
 
@@ -216,19 +217,24 @@ def cli_out_write(data, fg=None, bg=None, endline="\n", indentation=0):
     sys.stdout.write(data)
 
 
-def progress_bar(chunks, total_size):
+class ConanProgress:
+    def __init__(self):
+        columns = (
+            TextColumn("{task.description}", justify="left"),
+            BarColumn(),
+            "[progress.percentage]{task.percentage:>3.1f}%",
+            DownloadColumn(),
+            TransferSpeedColumn(),
+            TimeRemainingColumn(),
+        )
+        self._progress = Progress(*columns, refresh_per_second=30)
 
-    columns = (
-        TextColumn("[progress.description]{task.description}", justify="right"),
-        BarColumn(),
-        "[progress.percentage]{task.percentage:>3.1f}%",
-        DownloadColumn(),
-        TransferSpeedColumn(),
-        TimeRemainingColumn(),
-    )
-    progress = Progress(*columns)
-    task_id = progress.add_task("", total=total_size)
-    with progress:
+    def create_bar(self, description=""):
+        return self, self._progress.add_task(f"Downloading {description}", start=False)
+
+    def get_bar(self, bar_id, chunks, total_size):
+        self._progress.update(bar_id, total=total_size)
+        self._progress.start_task(bar_id)
         for chunk in chunks:
             yield chunk
-            progress.update(task_id, advance=len(chunk))
+            self._progress.update(bar_id, advance=len(chunk))

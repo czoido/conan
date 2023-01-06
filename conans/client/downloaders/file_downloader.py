@@ -3,7 +3,7 @@ import re
 import time
 
 
-from conan.api.output import ConanOutput, progress_bar
+from conan.api.output import ConanOutput
 from conans.client.rest import response_to_str
 from conans.errors import ConanException, NotFoundException, AuthenticationException, \
     ForbiddenException, ConanConnectionError, RequestErrorException
@@ -18,7 +18,7 @@ class FileDownloader:
         self._requester = requester
 
     def download(self, url, file_path, retry=2, retry_wait=0, verify_ssl=True, auth=None,
-                 overwrite=False, headers=None, md5=None, sha1=None, sha256=None):
+                 overwrite=False, headers=None, md5=None, sha1=None, sha256=None, progress=None):
         """ in order to make the download concurrent, the folder for file_path MUST exist
         """
         assert file_path, "Conan 2.0 always download files to disk, not to memory"
@@ -35,7 +35,7 @@ class FileDownloader:
         try:
             for counter in range(retry + 1):
                 try:
-                    self._download_file(url, auth, headers, file_path, verify_ssl)
+                    self._download_file(url, auth, headers, file_path, verify_ssl, progress=progress)
                     break
                 except (NotFoundException, ForbiddenException, AuthenticationException,
                         RequestErrorException):
@@ -68,7 +68,8 @@ class FileDownloader:
         if sha256 is not None:
             check_with_algorithm_sum("sha256", file_path, sha256)
 
-    def _download_file(self, url, auth, headers, file_path, verify_ssl, try_resume=False):
+    def _download_file(self, url, auth, headers, file_path, verify_ssl, try_resume=False,
+                       progress=None):
         t1 = time.time()
         if try_resume and os.path.exists(file_path):
             range_start = os.path.getsize(file_path)
@@ -111,12 +112,18 @@ class FileDownloader:
             total_length = get_total_length()
             action = "Downloading" if range_start == 0 else "Continuing download of"
             description = "{} {}".format(action, os.path.basename(file_path))
-            self._output.info(description)
 
-            chunks = progress_bar(self._response_chunks(response), total_size=total_length)
+            if progress:
+                _progress, _bar_id = progress
+                chunks = _progress.get_bar(_bar_id, self._response_chunks(response),
+                                           total_size=total_length)
+            else:
+                chunks = self._response_chunks(response)
+                self._output.info(description)
 
             total_downloaded_size = range_start
             mode = "ab" if range_start else "wb"
+
             with open(file_path, mode) as file_handler:
                 for chunk in chunks:
                     file_handler.write(chunk)
@@ -128,7 +135,8 @@ class FileDownloader:
             if total_downloaded_size != total_length and not gzip:
                 if (total_length > total_downloaded_size > range_start
                         and response.headers.get("Accept-Ranges") == "bytes"):
-                    self._download_file(url, auth, headers, file_path, verify_ssl, try_resume=True)
+                    self._download_file(url, auth, headers, file_path, verify_ssl, try_resume=True,
+                                        progress=progress)
                 else:
                     raise ConanException("Transfer interrupted before complete: %s < %s"
                                          % (total_downloaded_size, total_length))
