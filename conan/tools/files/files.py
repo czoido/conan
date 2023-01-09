@@ -12,7 +12,7 @@ from shutil import which
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
-from conan.api.output import ConanOutput, ConanProgress
+from conan.api.output import ConanOutput
 from conan.tools import CONAN_TOOLCHAIN_ARGS_FILE, CONAN_TOOLCHAIN_ARGS_SECTION
 from conans.client.downloaders.caching_file_downloader import CachingFileDownloader
 from conans.errors import ConanException
@@ -236,14 +236,13 @@ def download(conanfile, url, filename, verify=True, retry=None, retry_wait=None,
             _copy_local_file_from_uri(conanfile, url=file_url, file_path=filename, md5=md5,
                                       sha1=sha1, sha256=sha256)
         else:
-            progress = ConanProgress()
-            with progress._progress:
-                file_bar = progress.create_bar(os.path.basename(filename))
-                downloader = CachingFileDownloader(requester, download_cache=download_cache)
-                os.makedirs(os.path.dirname(filename), exist_ok=True)  # filename in subfolder must exist
-                downloader.download(url=file_url, file_path=filename, auth=auth, overwrite=overwrite,
-                                    verify_ssl=verify, retry=retry, retry_wait=retry_wait,
-                                    headers=headers, md5=md5, sha1=sha1, sha256=sha256, progress=file_bar)
+            downloader = CachingFileDownloader(requester, download_cache=download_cache)
+            os.makedirs(os.path.dirname(filename), exist_ok=True)  # filename in subfolder must exist
+            urls = {filename: file_url}
+            downloader.download(urls=urls, dest_folder=os.path.dirname(filename), files=[filename],
+                                auth=auth, overwrite=overwrite, verify_ssl=verify, retry=retry,
+                                retry_wait=retry_wait, headers=headers, md5=md5, sha1=sha1,
+                                sha256=sha256)
         out.writeln("")
 
     if not isinstance(url, (list, tuple)):

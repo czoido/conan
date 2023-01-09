@@ -17,19 +17,19 @@ class CachingFileDownloader:
         self._download_cache = download_cache
         self._file_downloader = FileDownloader(requester)
 
-    def download(self, url, file_path, retry=2, retry_wait=0, verify_ssl=True, auth=None,
-                 overwrite=False, headers=None, md5=None, sha1=None, sha256=None,
-                 progress=None):
+    def download(self, urls, dest_folder, files, retry=2, retry_wait=0,
+                 verify_ssl=True, auth=None, overwrite=False, headers=None, md5=None, sha1=None,
+                 sha256=None, parallel=False):
         if self._download_cache:
-            self._caching_download(url, file_path, retry=retry, retry_wait=retry_wait,
+            self._caching_download(urls, dest_folder, files, retry=retry, retry_wait=retry_wait,
                                    verify_ssl=verify_ssl, auth=auth, overwrite=overwrite,
                                    headers=headers, md5=md5, sha1=sha1, sha256=sha256,
-                                   progress=progress)
+                                   parallel=parallel)
         else:
-            self._file_downloader.download(url, file_path, retry=retry, retry_wait=retry_wait,
+            self._file_downloader.download(urls, dest_folder, files, retry=retry, retry_wait=retry_wait,
                                            verify_ssl=verify_ssl, auth=auth, overwrite=overwrite,
                                            headers=headers, md5=md5, sha1=sha1, sha256=sha256,
-                                           progress=progress)
+                                           parallel=parallel)
 
     _thread_locks = {}  # Needs to be shared among all instances
 
@@ -46,6 +46,7 @@ class CachingFileDownloader:
             finally:
                 thread_lock.release()
 
+    # FIXME: progress
     def _caching_download(self, url, file_path, md5, sha1, sha256, **kwargs):
         h = self._get_hash(url, md5, sha1, sha256)
         with self._lock(h):

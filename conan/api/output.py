@@ -229,10 +229,13 @@ class ConanProgress:
         )
         self._progress = Progress(*columns, refresh_per_second=30)
 
-    def create_bar(self, description=""):
-        return self, self._progress.add_task(f"Downloading {description}", start=False)
+    @property
+    def progress(self):
+        return self._progress
 
-    def get_bar(self, bar_id, chunks, total_size):
+    # wraps the response and yields the chunks to iterate over rendering the bar
+    def add_bar(self, chunks, total_size, description=""):
+        bar_id = self._progress.add_task(description, start=False)
         self._progress.update(bar_id, total=total_size)
         self._progress.start_task(bar_id)
         for chunk in chunks:
