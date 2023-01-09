@@ -234,7 +234,7 @@ class ConanProgress:
         return self._progress
 
     # wraps the response and yields the chunks to iterate over rendering the bar
-    def add_bar(self, chunks, total_size, description=""):
+    def add_task(self, chunks, total_size, description=""):
         bar_id = self._progress.add_task(description, start=False)
         self._progress.update(bar_id, total=total_size)
         self._progress.start_task(bar_id)
