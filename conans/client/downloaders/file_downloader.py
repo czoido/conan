@@ -50,24 +50,29 @@ class CachingFileDownloader:
         h = compute_sha256(url.encode())
         return h
 
-    def _prepare_download(self, abs_path, overwrite):
-        os.makedirs(os.path.dirname(abs_path), exist_ok=True)  # filename in subfolder must exist
+    def _prepare_download(self, url, file_path, md5, sha1, sha256, overwrite):
+        # check if it's already in the downloads cache
+                
 
-        assert abs_path, "Conan 2.0 always download files to disk, not to memory"
-        assert os.path.isabs(abs_path), "Target file_path must be absolute"
 
-        if os.path.exists(abs_path):
+
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)  # filename in subfolder must exist
+
+        assert file_path, "Conan 2.0 always download files to disk, not to memory"
+        assert os.path.isabs(file_path), "Target file_path must be absolute"
+
+        if os.path.exists(file_path):
             if overwrite:
-                self._output.warning("file '%s' already exists, overwriting" % abs_path)
+                self._output.warning("file '%s' already exists, overwriting" % file_path)
             else:
                 # Should not happen, better to raise, probably we had to remove
                 # the dest folder before
-                raise ConanException("Error, the file to download already exists: '%s'" % abs_path)
+                raise ConanException("Error, the file to download already exists: '%s'" % file_path)
 
     def _download_with_retry(self, url, auth, headers, file_path, verify_ssl, retry, retry_wait,
                              md5, sha1, sha256, overwrite):
 
-        self._prepare_download(file_path, overwrite)
+        self._prepare_download(url,file_path, md5, sha1, sha256, overwrite)
         try:
             for counter in range(retry + 1):
                 try:
