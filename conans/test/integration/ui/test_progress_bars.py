@@ -15,6 +15,7 @@ conanfile = textwrap.dedent("""
                 pass
     """)
 
+
 def test_progress_bars_download():
     client = TestClient(default_server_user=True)
     client.save({"conanfile.py": conanfile})
