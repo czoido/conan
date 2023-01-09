@@ -1,43 +1,73 @@
 import os
 import re
 import time
+from contextlib import contextmanager
+from threading import Lock
 
 from conan.api.output import ConanOutput, ConanProgress
 from conans.client.rest import response_to_str
 from conans.errors import ConanException, NotFoundException, AuthenticationException, \
     ForbiddenException, ConanConnectionError, RequestErrorException
+from conans.util.locks import SimpleLock
 from conans.util.sha import check_with_algorithm_sum
 from conans.util.thread import ExceptionThread
 from conans.util.tracer import log_download
+from conans.util.sha import sha256 as compute_sha256
 
 
-class FileDownloader:
+class CachingFileDownloader:
 
-    def __init__(self, requester):
+    _thread_locks = {}  # Needs to be shared among all instances
+
+    def __init__(self, requester,  download_cache):
         self._output = ConanOutput()
         self._requester = requester
-        self._progress = ConanProgress()
+        self._download_cache = download_cache
+        self._progress_bar = ConanProgress()
 
-    def _prepare_download(self, urls, dest_folder, files, overwrite):
-        sorted_files = sorted(files, reverse=True)
-        for filename in sorted_files:
-            abs_path = os.path.join(dest_folder, filename)
-            os.makedirs(os.path.dirname(abs_path), exist_ok=True)  # filename in subfolder must exist
+    @contextmanager
+    def _lock(self, lock_id):
+        lock = os.path.join(self._download_cache, "locks", lock_id)
+        with SimpleLock(lock):
+            # Once the process has access, make sure multithread is locked too
+            # as SimpleLock doesn't work multithread
+            thread_lock = self._thread_locks.setdefault(lock, Lock())
+            thread_lock.acquire()
+            try:
+                yield
+            finally:
+                thread_lock.release()
 
-            assert abs_path, "Conan 2.0 always download files to disk, not to memory"
-            assert os.path.isabs(abs_path), "Target file_path must be absolute"
+    @staticmethod
+    def _get_hash(url, md5, sha1, sha256):
+        """ For Api V2, the cached downloads always have recipe and package REVISIONS in the URL,
+        making them immutable, and perfect for cached downloads of artifacts. For V2 checksum
+        will always be None.
+        """
+        checksum = sha256 or sha1 or md5
+        if checksum is not None:
+            url += checksum
+        h = compute_sha256(url.encode())
+        return h
 
-            if os.path.exists(abs_path):
-                if overwrite:
-                    self._output.warning("file '%s' already exists, overwriting" % abs_path)
-                else:
-                    # Should not happen, better to raise, probably we had to remove
-                    # the dest folder before
-                    raise ConanException("Error, the file to download already exists: '%s'" % abs_path)
-        return sorted_files
+    def _prepare_download(self, abs_path, overwrite):
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True)  # filename in subfolder must exist
+
+        assert abs_path, "Conan 2.0 always download files to disk, not to memory"
+        assert os.path.isabs(abs_path), "Target file_path must be absolute"
+
+        if os.path.exists(abs_path):
+            if overwrite:
+                self._output.warning("file '%s' already exists, overwriting" % abs_path)
+            else:
+                # Should not happen, better to raise, probably we had to remove
+                # the dest folder before
+                raise ConanException("Error, the file to download already exists: '%s'" % abs_path)
 
     def _download_with_retry(self, url, auth, headers, file_path, verify_ssl, retry, retry_wait,
-                             md5, sha1, sha256):
+                             md5, sha1, sha256, overwrite):
+
+        self._prepare_download(file_path, overwrite)
         try:
             for counter in range(retry + 1):
                 try:
@@ -60,26 +90,24 @@ class FileDownloader:
                 os.remove(file_path)
             raise
 
-    def download(self, urls, dest_folder, files, retry=2, retry_wait=0, verify_ssl=True, auth=None,
+    def download(self, urls, dest_folder, retry=2, retry_wait=0, verify_ssl=True, auth=None,
                  overwrite=False, headers=None, md5=None, sha1=None, sha256=None, parallel=False):
         """ in order to make the download concurrent, the folder for file_path MUST exist
         """
-        sorted_files_download = self._prepare_download(urls, dest_folder, files, overwrite)
         threads = []
-        with self._progress.progress:
-            for filename in sorted_files_download:
-                url = urls[filename]
+        with self._progress_bar.progress:
+            for filename, url in urls.items():
                 file_path = os.path.join(dest_folder, filename)
                 if parallel:
                     kwargs = {"url": url, "auth": auth, "headers": headers, "file_path": file_path,
                               "verify_ssl": verify_ssl, "retry": retry, "retry_wait": retry_wait,
-                              "md5": md5, "sha1": sha1, "sha256": sha256}
+                              "md5": md5, "sha1": sha1, "sha256": sha256, "overwrite": overwrite}
                     thread = ExceptionThread(target=self._download_with_retry, kwargs=kwargs)
                     threads.append(thread)
                     thread.start()
                 else:
                     self._download_with_retry(url, auth, headers, file_path, verify_ssl, retry,
-                                              retry_wait, md5, sha1, sha256)
+                                              retry_wait, md5, sha1, sha256, overwrite)
             for t in threads:
                 t.join()
 
@@ -143,8 +171,8 @@ class FileDownloader:
 
             use_progress_bars = True
             if use_progress_bars:
-                chunks = self._progress.add_bar(self._response_chunks(response), total_length,
-                                                description)
+                chunks = self._progress_bar.add_task(self._response_chunks(response), total_length,
+                                                     description)
             else:
                 chunks = self._response_chunks(response)
                 self._output.info(description)

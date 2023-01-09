@@ -1,10 +1,11 @@
 import copy
 import os
 import time
+from collections import OrderedDict
 
 from conan.api.output import ConanOutput
+from conans.client.downloaders.file_downloader import CachingFileDownloader
 
-from conans.client.downloaders.caching_file_downloader import CachingFileDownloader
 from conans.client.rest.client_routes import ClientV2Router
 from conans.client.rest.file_uploader import FileUploader
 from conans.client.rest.rest_client_common import RestCommonMethods, get_exception_from_error
@@ -42,7 +43,7 @@ class RestV2Methods(RestCommonMethods):
             files.remove(EXPORT_SOURCES_TGZ_NAME)
 
         # If we didn't indicated reference, server got the latest, use absolute now, it's safer
-        urls = {fn: self.router.recipe_file(ref, fn) for fn in files}
+        urls = OrderedDict((fn, self.router.recipe_file(ref, fn)) for fn in sorted(files, reverse=True))
         self._download_and_save_files(urls, dest_folder, files, parallel=True)
         ret = {fn: os.path.join(dest_folder, fn) for fn in files}
         return ret
@@ -59,7 +60,7 @@ class RestV2Methods(RestCommonMethods):
         files = [EXPORT_SOURCES_TGZ_NAME, ]
 
         # If we didn't indicated reference, server got the latest, use absolute now, it's safer
-        urls = {fn: self.router.recipe_file(ref, fn) for fn in files}
+        urls = OrderedDict((fn, self.router.recipe_file(ref, fn)) for fn in sorted(files, reverse=True))
         self._download_and_save_files(urls, dest_folder, files)
         ret = {fn: os.path.join(dest_folder, fn) for fn in files}
         return ret
@@ -69,7 +70,7 @@ class RestV2Methods(RestCommonMethods):
         data = self._get_file_list_json(url)
         files = data["files"]
         # If we didn't indicated reference, server got the latest, use absolute now, it's safer
-        urls = {fn: self.router.package_file(pref, fn) for fn in files}
+        urls = OrderedDict((fn, self.router.package_file(pref, fn)) for fn in sorted(files, reverse=True))
         self._download_and_save_files(urls, dest_folder, files)
         ret = {fn: os.path.join(dest_folder, fn) for fn in files}
         return ret
@@ -142,8 +143,8 @@ class RestV2Methods(RestCommonMethods):
         if download_cache and not os.path.isabs(download_cache):
             raise ConanException("core.download:download_cache must be an absolute path")
         downloader = CachingFileDownloader(self.requester, download_cache=download_cache)
-        downloader.download(urls=urls, dest_folder=dest_folder, files=files, auth=self.auth,
-                            verify_ssl=self.verify_ssl, retry=retry, retry_wait=retry_wait, parallel=True)
+        downloader.download(urls=urls, dest_folder=dest_folder, auth=self.auth, verify_ssl=self.verify_ssl,
+                            retry=retry, retry_wait=retry_wait, parallel=True)
 
     def remove_all_packages(self, ref):
         """ Remove all packages from the specified reference"""

@@ -5,7 +5,7 @@ from urllib.parse import urlparse, urlsplit
 from contextlib import contextmanager
 
 from conan.api.output import ConanOutput
-from conans.client.downloaders.file_downloader import FileDownloader
+from conans.client.downloaders.file_downloader import CachingFileDownloader
 from conans.errors import ConanException
 from conans.util.files import mkdir, rmdir, remove, unzip, chdir
 from conans.util.runners import detect_runner
@@ -113,7 +113,7 @@ def _process_download(config, cache, requester):
         filename = os.path.basename(path)
         zippath = os.path.join(tmp_folder, filename)
         try:
-            downloader = FileDownloader(requester=requester)
+            downloader = CachingFileDownloader(requester=requester)
             downloader.download(url=config.uri, file_path=zippath, verify_ssl=config.verify_ssl,
                                 retry=1)
             _process_zip_file(config, zippath, cache, tmp_folder, first_remove=True)

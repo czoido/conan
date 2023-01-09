@@ -14,7 +14,7 @@ from urllib.request import url2pathname
 
 from conan.api.output import ConanOutput
 from conan.tools import CONAN_TOOLCHAIN_ARGS_FILE, CONAN_TOOLCHAIN_ARGS_SECTION
-from conans.client.downloaders.caching_file_downloader import CachingFileDownloader
+from conans.client.downloaders.file_downloader import CachingFileDownloader
 from conans.errors import ConanException
 from conans.util.files import rmdir as _internal_rmdir
 from conans.util.sha import check_with_algorithm_sum
@@ -238,8 +238,7 @@ def download(conanfile, url, filename, verify=True, retry=None, retry_wait=None,
         else:
             downloader = CachingFileDownloader(requester, download_cache=download_cache)
             os.makedirs(os.path.dirname(filename), exist_ok=True)  # filename in subfolder must exist
-            urls = {filename: file_url}
-            downloader.download(urls=urls, dest_folder=os.path.dirname(filename), files=[filename],
+            downloader.download(urls={filename: file_url}, dest_folder=os.path.dirname(filename),
                                 auth=auth, overwrite=overwrite, verify_ssl=verify, retry=retry,
                                 retry_wait=retry_wait, headers=headers, md5=md5, sha1=sha1,
                                 sha256=sha256)
