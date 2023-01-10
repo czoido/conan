@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import time
 from contextlib import contextmanager
 from threading import Lock
@@ -8,6 +9,7 @@ from conan.api.output import ConanOutput, ConanProgress
 from conans.client.rest import response_to_str
 from conans.errors import ConanException, NotFoundException, AuthenticationException, \
     ForbiddenException, ConanConnectionError, RequestErrorException
+from conans.util.files import remove_if_dirty, set_dirty_context_manager, mkdir
 from conans.util.locks import SimpleLock
 from conans.util.sha import check_with_algorithm_sum
 from conans.util.thread import ExceptionThread
@@ -50,11 +52,25 @@ class CachingFileDownloader:
         h = compute_sha256(url.encode())
         return h
 
-    def _prepare_download(self, url, file_path, md5, sha1, sha256, overwrite):
-        # check if it's already in the downloads cache
-                
+    def _prepare_download(self, file_path, overwrite):
 
-
+        # # check if it's already in the downloads cache
+        # if self._download_cache:
+        #     h = self._get_hash(url, md5, sha1, sha256)
+        #     with self._lock(h):
+        #         cached_path = os.path.join(self._download_cache, h)
+        #         remove_if_dirty(cached_path)
+        #
+        #         if not os.path.exists(cached_path):
+        #             # download to the cache_path
+        #             # with set_dirty_context_manager(cached_path):
+        #             #     self.download(url=url, file_path=cached_path, md5=md5,
+        #             #                   sha1=sha1, sha256=sha256, **kwargs)
+        #
+        #         # Everything good, file in the cache, just copy it to final destination
+        #         file_path = os.path.abspath(file_path)
+        #         mkdir(os.path.dirname(file_path))
+        #         shutil.copy2(cached_path, file_path)
 
         os.makedirs(os.path.dirname(file_path), exist_ok=True)  # filename in subfolder must exist
 
@@ -69,14 +85,33 @@ class CachingFileDownloader:
                 # the dest folder before
                 raise ConanException("Error, the file to download already exists: '%s'" % file_path)
 
+    def _cache_download_file(self, url, auth, headers, file_path, verify_ssl, overwrite, md5, sha1, sha256):
+        h = self._get_hash(url, md5, sha1, sha256)
+        with self._lock(h):
+            cached_path = os.path.join(self._download_cache, h)
+            remove_if_dirty(cached_path)
+
+            if not os.path.exists(cached_path):
+                with set_dirty_context_manager(cached_path):
+                    self._download_file(url, auth, headers, cached_path, verify_ssl, overwrite)
+            else:
+                print("--->>", cached_path)
+
+            # Everything good, file in the cache, just copy it to final destination
+            file_path = os.path.abspath(file_path)
+            mkdir(os.path.dirname(file_path))
+            shutil.copy2(cached_path, file_path)
+
     def _download_with_retry(self, url, auth, headers, file_path, verify_ssl, retry, retry_wait,
                              md5, sha1, sha256, overwrite):
-
-        self._prepare_download(url,file_path, md5, sha1, sha256, overwrite)
         try:
             for counter in range(retry + 1):
                 try:
-                    self._download_file(url, auth, headers, file_path, verify_ssl)
+                    if self._download_cache:
+                        self._cache_download_file(url, auth, headers, file_path, verify_ssl,
+                                                  overwrite, md5, sha1, sha256)
+                    else:
+                        self._download_file(url, auth, headers, file_path, verify_ssl, overwrite)
                     break
                 except (NotFoundException, ForbiddenException, AuthenticationException,
                         RequestErrorException):
@@ -130,7 +165,8 @@ class CachingFileDownloader:
         if sha256 is not None:
             check_with_algorithm_sum("sha256", file_path, sha256)
 
-    def _download_file(self, url, auth, headers, file_path, verify_ssl, try_resume=False):
+    def _download_file(self, url, auth, headers, file_path, verify_ssl, overwrite, try_resume=False):
+        self._prepare_download(file_path, overwrite)
         t1 = time.time()
         if try_resume and os.path.exists(file_path):
             range_start = os.path.getsize(file_path)
