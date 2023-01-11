@@ -53,25 +53,6 @@ class CachingFileDownloader:
         return h
 
     def _prepare_download_path(self, file_path, overwrite):
-
-        # # check if it's already in the downloads cache
-        # if self._download_cache:
-        #     h = self._get_hash(url, md5, sha1, sha256)
-        #     with self._lock(h):
-        #         cached_path = os.path.join(self._download_cache, h)
-        #         remove_if_dirty(cached_path)
-        #
-        #         if not os.path.exists(cached_path):
-        #             # download to the cache_path
-        #             # with set_dirty_context_manager(cached_path):
-        #             #     self.download(url=url, file_path=cached_path, md5=md5,
-        #             #                   sha1=sha1, sha256=sha256, **kwargs)
-        #
-        #         # Everything good, file in the cache, just copy it to final destination
-        #         file_path = os.path.abspath(file_path)
-        #         mkdir(os.path.dirname(file_path))
-        #         shutil.copy2(cached_path, file_path)
-
         os.makedirs(os.path.dirname(file_path), exist_ok=True)  # filename in subfolder must exist
 
         assert file_path, "Conan 2.0 always download files to disk, not to memory"
@@ -102,8 +83,11 @@ class CachingFileDownloader:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             shutil.copy2(cached_path, file_path)
 
-    def _download_with_retry(self, url, auth, headers, file_path, verify_ssl, retry, retry_wait,
-                             md5, sha1, sha256, overwrite):
+    def _download_with_retry(self, url, file_path, retry=2, retry_wait=0, verify_ssl=True, auth=None,
+                             overwrite=False, headers=None, md5=None, sha1=None, sha256=None):
+
+        self._prepare_download_path(file_path, overwrite)
+
         try:
             for counter in range(retry + 1):
                 try:
@@ -146,7 +130,7 @@ class CachingFileDownloader:
                     threads.append(thread)
                     thread.start()
                 else:
-                    self._download_with_retry(url, auth, headers, file_path, verify_ssl, retry,
+                    self._download_with_retry(url, auth, file_path, headers, verify_ssl, retry,
                                               retry_wait, md5, sha1, sha256, overwrite)
             for t in threads:
                 t.join()
@@ -165,10 +149,7 @@ class CachingFileDownloader:
         if sha256 is not None:
             check_with_algorithm_sum("sha256", file_path, sha256)
 
-    def _download_file(self, url, file_path, auth=None, headers=None, verify_ssl=True,
-                       overwrite=False, try_resume=False):
-        if not try_resume:
-            self._prepare_download_path(file_path, overwrite)
+    def _download_file(self, url, file_path, auth=None, headers=None, verify_ssl=True, try_resume=False):
 
         t1 = time.time()
         if try_resume and os.path.exists(file_path):
