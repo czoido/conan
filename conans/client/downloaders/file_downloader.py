@@ -94,12 +94,14 @@ class CachingFileDownloader:
             if not os.path.exists(cached_path):
                 with set_dirty_context_manager(cached_path):
                     self._download_file(url, auth, headers, cached_path, verify_ssl, overwrite)
-            else:
-                print("--->>", cached_path)
 
             # Everything good, file in the cache, just copy it to final destination
             file_path = os.path.abspath(file_path)
-            mkdir(os.path.dirname(file_path))
+            try:
+                mkdir(os.path.dirname(file_path))
+            except Exception as e:
+                print("@@@@@ EXC------->>>>", e)
+                raise
             shutil.copy2(cached_path, file_path)
 
     def _download_with_retry(self, url, auth, headers, file_path, verify_ssl, retry, retry_wait,
