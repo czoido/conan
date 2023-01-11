@@ -97,11 +97,8 @@ class CachingFileDownloader:
 
             # Everything good, file in the cache, just copy it to final destination
             file_path = os.path.abspath(file_path)
-            try:
-                mkdir(os.path.dirname(file_path))
-            except Exception as e:
-                print("@@@@@ EXC------->>>>", e)
-                raise
+            # the folder may exist if another thread created if first
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
             shutil.copy2(cached_path, file_path)
 
     def _download_with_retry(self, url, auth, headers, file_path, verify_ssl, retry, retry_wait,
