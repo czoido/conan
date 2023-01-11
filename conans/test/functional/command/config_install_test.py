@@ -9,7 +9,7 @@ from mock import patch
 
 from conans.client.cache.remote_registry import Remote
 from conans.client.conf.config_installer import _hide_password
-from conans.client.downloaders.file_downloader import FileDownloader
+from conans.client.downloaders.file_downloader import CachingFileDownloader
 from conans.paths import DEFAULT_CONAN_HOME
 from conans.test.assets.genconanfile import GenConanfile
 from conans.test.utils.test_files import scan_folder, temp_folder, tgz_with_contents
@@ -274,7 +274,7 @@ class ConfigInstallTest(unittest.TestCase):
             def my_download(obj, url, file_path, **kwargs):  # @UnusedVariable
                 self._create_zip(file_path)
 
-            with patch.object(FileDownloader, 'download', new=my_download):
+            with patch.object(CacheFileDownloader, 'download', new=my_download):
                 self.client.run("config install http://myfakeurl.com/myconf.zip %s" % origin)
                 self._check("url, http://myfakeurl.com/myconf.zip, True, None")
 
@@ -289,7 +289,7 @@ class ConfigInstallTest(unittest.TestCase):
         def my_download(obj, url, file_path, **kwargs):  # @UnusedVariable
             self._create_zip(file_path)
 
-        with patch.object(FileDownloader, 'download', new=my_download):
+        with patch.object(CacheFileDownloader, 'download', new=my_download):
             # repeat the process to check it works with ?args
             self.client.run("config install http://myfakeurl.com/myconf.zip?sha=1")
             self._check("url, http://myfakeurl.com/myconf.zip?sha=1, True, None")
@@ -298,7 +298,7 @@ class ConfigInstallTest(unittest.TestCase):
         def my_download(obj, url, file_path, **kwargs):  # @UnusedVariable
             self._create_zip(file_path)
 
-        with patch.object(FileDownloader, 'download', new=my_download):
+        with patch.object(CacheFileDownloader, 'download', new=my_download):
             self.client.run("config install http://myfakeurl.com/myconf.zip")
             self._check("url, http://myfakeurl.com/myconf.zip, True, None")
 
@@ -313,7 +313,7 @@ class ConfigInstallTest(unittest.TestCase):
         def my_download(obj, url, file_path, **kwargs):  # @UnusedVariable
             self._create_tgz(file_path)
 
-        with patch.object(FileDownloader, 'download', new=my_download):
+        with patch.object(CacheFileDownloader, 'download', new=my_download):
             self.client.run("config install http://myfakeurl.com/myconf.tar.gz")
             self._check("url, http://myfakeurl.com/myconf.tar.gz, True, None")
 
@@ -443,7 +443,7 @@ class ConfigInstallTest(unittest.TestCase):
             self.assertEqual(url, fake_url_with_credentials)
             self._create_zip(file_path)
 
-        with patch.object(FileDownloader, 'download', new=my_download):
+        with patch.object(CacheFileDownloader, 'download', new=my_download):
             self.client.run("config install %s" % fake_url_with_credentials)
 
             # Check credentials are not displayed in output
@@ -464,10 +464,10 @@ class ConfigInstallTest(unittest.TestCase):
             assert kwargs["verify_ssl"] is True
             self._create_zip(file_path)
 
-        with patch.object(FileDownloader, 'download', new=download_verify_false):
+        with patch.object(CacheFileDownloader, 'download', new=download_verify_false):
             self.client.run("config install %s --verify-ssl=False" % fake_url)
 
-        with patch.object(FileDownloader, 'download', new=download_verify_true):
+        with patch.object(CacheFileDownloader, 'download', new=download_verify_true):
             self.client.run("config install %s --verify-ssl=True" % fake_url)
 
     @pytest.mark.tool("git")

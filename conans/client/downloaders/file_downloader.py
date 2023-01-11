@@ -21,7 +21,7 @@ class CachingFileDownloader:
 
     _thread_locks = {}  # Needs to be shared among all instances
 
-    def __init__(self, requester,  download_cache):
+    def __init__(self, requester,  download_cache=None):
         self._output = ConanOutput()
         self._requester = requester
         self._download_cache = download_cache
@@ -52,7 +52,7 @@ class CachingFileDownloader:
         h = compute_sha256(url.encode())
         return h
 
-    def _prepare_download(self, file_path, overwrite):
+    def _prepare_download_path(self, file_path, overwrite):
 
         # # check if it's already in the downloads cache
         # if self._download_cache:
@@ -85,7 +85,8 @@ class CachingFileDownloader:
                 # the dest folder before
                 raise ConanException("Error, the file to download already exists: '%s'" % file_path)
 
-    def _cache_download_file(self, url, auth, headers, file_path, verify_ssl, overwrite, md5, sha1, sha256):
+    def _cache_download_file(self, url, file_path, auth=None, headers=None, verify_ssl=True,
+                             overwrite=False, md5=None, sha1=None, sha256=None):
         h = self._get_hash(url, md5, sha1, sha256)
         with self._lock(h):
             cached_path = os.path.join(self._download_cache, h)
@@ -93,7 +94,7 @@ class CachingFileDownloader:
 
             if not os.path.exists(cached_path):
                 with set_dirty_context_manager(cached_path):
-                    self._download_file(url, auth, headers, cached_path, verify_ssl, overwrite)
+                    self._download_file(url, cached_path, auth, headers, verify_ssl, overwrite)
 
             # Everything good, file in the cache, just copy it to final destination
             file_path = os.path.abspath(file_path)
@@ -107,10 +108,10 @@ class CachingFileDownloader:
             for counter in range(retry + 1):
                 try:
                     if self._download_cache:
-                        self._cache_download_file(url, auth, headers, file_path, verify_ssl,
+                        self._cache_download_file(url, file_path, auth, headers, verify_ssl,
                                                   overwrite, md5, sha1, sha256)
                     else:
-                        self._download_file(url, auth, headers, file_path, verify_ssl, overwrite)
+                        self._download_file(url, file_path, auth, headers, verify_ssl, overwrite)
                     break
                 except (NotFoundException, ForbiddenException, AuthenticationException,
                         RequestErrorException):
@@ -164,8 +165,11 @@ class CachingFileDownloader:
         if sha256 is not None:
             check_with_algorithm_sum("sha256", file_path, sha256)
 
-    def _download_file(self, url, auth, headers, file_path, verify_ssl, overwrite, try_resume=False):
-        self._prepare_download(file_path, overwrite)
+    def _download_file(self, url, file_path, auth=None, headers=None, verify_ssl=True,
+                       overwrite=False, try_resume=False):
+        if not try_resume:
+            self._prepare_download_path(file_path, overwrite)
+
         t1 = time.time()
         if try_resume and os.path.exists(file_path):
             range_start = os.path.getsize(file_path)
@@ -231,7 +235,7 @@ class CachingFileDownloader:
             if total_downloaded_size != total_length and not gzip:
                 if (total_length > total_downloaded_size > range_start
                         and response.headers.get("Accept-Ranges") == "bytes"):
-                    self._download_file(url, auth, headers, file_path, verify_ssl, try_resume=True)
+                    self._download_file(url, file_path, auth, headers, verify_ssl, try_resume=True)
                 else:
                     raise ConanException("Transfer interrupted before complete: %s < %s"
                                          % (total_downloaded_size, total_length))
