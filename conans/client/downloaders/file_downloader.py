@@ -130,8 +130,9 @@ class CachingFileDownloader:
                     threads.append(thread)
                     thread.start()
                 else:
-                    self._download_with_retry(url, auth, file_path, headers, verify_ssl, retry,
-                                              retry_wait, md5, sha1, sha256, overwrite)
+                    self._download_with_retry(url, file_path, retry, retry_wait, verify_ssl, auth,
+                                              overwrite, headers, md5, sha1, sha256)
+
             for t in threads:
                 t.join()
 
