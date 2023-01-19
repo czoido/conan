@@ -67,7 +67,7 @@ BUILT_IN_CONFS = {
     "tools.microsoft.msbuild:verbosity": "Verbosity level for MSBuild: 'Quiet', 'Minimal', 'Normal', 'Detailed', 'Diagnostic'",
     "tools.microsoft.msbuild:vs_version": "Defines the IDE version when using the new msvc compiler",
     "tools.microsoft.msbuild:max_cpu_count": "Argument for the /m when running msvc to build parallel projects",
-    "tools.microsoft.msbuild:installation_path": "VS install path, to avoid auto-detect via vswhere, like C:/Program Files (x86)/Microsoft Visual Studio/2019/Community",
+    "tools.microsoft.msbuild:installation_path": "VS install path, to avoid auto-detect via vswhere, like C:/Program Files (x86)/Microsoft Visual Studio/2019/Community. Use empty string to disable",
     "tools.microsoft.msbuilddeps:exclude_code_analysis": "Suppress MSBuild code analysis for patterns",
     "tools.microsoft.msbuildtoolchain:compile_options": "Dictionary with MSBuild compiler options",
     "tools.microsoft.bash:subsystem": "The subsystem to be used when conanfile.win_bash==True. Possible values: msys2, msys, cygwin, wsl, sfu",
@@ -92,6 +92,7 @@ BUILT_IN_CONFS = {
     "tools.build:defines": "List of extra definition flags used by different toolchains like CMakeToolchain and AutotoolsToolchain",
     "tools.build:sharedlinkflags": "List of extra flags used by CMakeToolchain for CMAKE_SHARED_LINKER_FLAGS_INIT variable",
     "tools.build:exelinkflags": "List of extra flags used by CMakeToolchain for CMAKE_EXE_LINKER_FLAGS_INIT variable",
+    "tools.build:linker_scripts": "List of linker script files to pass to the linker used by different toolchains like CMakeToolchain, AutotoolsToolchain, and MesonToolchain",
     # Package ID composition
     "tools.info.package_id:confs": "List of existing configuration to be part of the package ID",
 }
@@ -464,22 +465,6 @@ class ConfDefinition:
 
     def __bool__(self):
         return bool(self._pattern_confs)
-
-    def __getitem__(self, module_name):
-        """
-        DEPRECATED: it's going to disappear in Conan 2.0. Use self.get() instead.
-        if a module name is requested for this, it goes to the None-Global config by default
-        """
-        pattern, name = self._split_pattern_name(module_name)
-        return self._pattern_confs.get(pattern, Conf()).get(name)
-
-    def __delitem__(self, module_name):
-        """
-        DEPRECATED: it's going to disappear in Conan 2.0.  Use self.pop() instead.
-        if a module name is requested for this, it goes to the None-Global config by default
-        """
-        pattern, name = self._split_pattern_name(module_name)
-        del self._pattern_confs.get(pattern, Conf())[name]
 
     def get(self, conf_name, default=None, check_type=None):
         """

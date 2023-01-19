@@ -257,6 +257,7 @@ class ConanFile:
             self.virtualrunenv = True
 
         self.env_scripts = {}  # Accumulate the env scripts generated in order
+        self.system_requires = {}  # Read only, internal {"apt": []}
 
         # layout() method related variables:
         self.folders = Folders()
@@ -274,11 +275,13 @@ class ConanFile:
         result["settings"] = self.settings.serialize()
         if hasattr(self, "python_requires"):
             result["python_requires"] = [r.repr_notime() for r in self.python_requires.all_refs()]
+        result["system_requires"] = self.system_requires
         result["options"] = self.options.serialize()
         result["source_folder"] = self.source_folder
         result["build_folder"] = self.build_folder
         result["package_folder"] = self.package_folder
         result["cpp_info"] = self.cpp_info.serialize()
+        result["label"] = self.display_name
         return result
 
     @property

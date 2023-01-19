@@ -334,6 +334,8 @@ class Requirement:
         if self.test:
             downstream_require.test = True
 
+        # If the current one is resolving conflicts, the downstream one will be too
+        downstream_require.force = require.force
         downstream_require.direct = False
         return downstream_require
 
@@ -422,7 +424,9 @@ class Requirements:
             if isinstance(declared, str):
                 declared = [declared, ]
             for item in declared:
-                # FIXME: Conan 2.0 Deprecate Conan 1.X definition of tuples, force to use method
+                if not isinstance(item, str):
+                    # TODO (2.X): Remove protection after transition from 1.X
+                    raise ConanException(f"Incompatible 1.X requires declaration '{item}'")
                 self.__call__(item)
         if declared_build is not None:
             if isinstance(declared_build, str):

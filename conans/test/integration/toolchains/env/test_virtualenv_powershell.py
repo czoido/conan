@@ -14,6 +14,7 @@ from conans.util.files import save
 def client():
     # We use special characters and spaces, to check everything works
     # https://github.com/conan-io/conan/issues/12648
+    # FIXME: This path still fails the creation of the deactivation script
     cache_folder = os.path.join(temp_folder(), "[sub] folder")
     client = TestClient(cache_folder)
     conanfile = str(GenConanfile("pkg", "0.1"))
@@ -40,6 +41,7 @@ def test_virtualenv(client):
             name = "app"
             version = "0.1"
             requires = "pkg/0.1"
+            apply_env = False
 
             def build(self):
                 self.output.info("----------BUILD----------------")
@@ -54,12 +56,14 @@ def test_virtualenv(client):
     assert not os.path.exists(os.path.join(client.current_folder, "conanbuildenv.bat"))
     assert not os.path.exists(os.path.join(client.current_folder, "conanrunenv.sh"))
     assert not os.path.exists(os.path.join(client.current_folder, "conanrunenv.bat"))
-    buildenv = client.load("conanbuildenv.ps1")
+    with open(os.path.join(client.current_folder, "conanbuildenv.ps1"), "r", encoding="utf-16") as f:
+        buildenv = f.read()
     assert '$env:MYPATH1="c:/path/to/ar"' in buildenv
     build = client.load("conanbuild.ps1")
     assert "conanbuildenv.ps1" in build
 
-    run_contents = client.load("conanrunenv.ps1")
+    with open(os.path.join(client.current_folder, "conanrunenv.ps1"), "r", encoding="utf-16") as f:
+        run_contents = f.read()
     assert '$env:MYVAR1="some nice content`" with quotes"' in run_contents
 
     client.run("create .")
