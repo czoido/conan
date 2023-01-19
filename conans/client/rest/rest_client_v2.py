@@ -44,7 +44,7 @@ class RestV2Methods(RestCommonMethods):
 
         # If we didn't indicated reference, server got the latest, use absolute now, it's safer
         urls = OrderedDict((fn, self.router.recipe_file(ref, fn)) for fn in sorted(files, reverse=True))
-        self._download_and_save_files(urls, dest_folder, files, parallel=True)
+        self._download_and_save_files(urls, dest_folder, parallel=True)
         ret = {fn: os.path.join(dest_folder, fn) for fn in files}
         return ret
 
@@ -134,7 +134,7 @@ class RestV2Methods(RestCommonMethods):
             raise ConanException("Execute upload again to retry upload the failed files: %s"
                                  % ", ".join(failed))
 
-    def _download_and_save_files(self, urls, dest_folder, files, parallel=False):
+    def _download_and_save_files(self, urls, dest_folder, parallel=False):
         # Take advantage of filenames ordering, so that conan_package.tgz and conan_export.tgz
         # can be < conanfile, conaninfo, and sent always the last, so smaller files go first
         retry = self._config.get("core.download:retry", check_type=int, default=2)
@@ -144,7 +144,7 @@ class RestV2Methods(RestCommonMethods):
             raise ConanException("core.download:download_cache must be an absolute path")
         downloader = CachingFileDownloader(self.requester, download_cache=download_cache)
         downloader.download(urls=urls, dest_folder=dest_folder, auth=self.auth, verify_ssl=self.verify_ssl,
-                            retry=retry, retry_wait=retry_wait, parallel=True)
+                            retry=retry, retry_wait=retry_wait, parallel=parallel)
 
     def remove_all_packages(self, ref):
         """ Remove all packages from the specified reference"""
