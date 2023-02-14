@@ -1,5 +1,6 @@
 import os
 
+from conans.client.graph.graph import RECIPE_CONSUMER
 from conans.errors import ConanException
 
 
@@ -41,7 +42,7 @@ def cmake_layout(conanfile, generator=None, src_folder=".", build_folder="build"
 
     conanfile.cpp.source.includedirs = ["include"]
 
-    if multi and not user_defined_build:
+    if multi:
         conanfile.cpp.build.libdirs = ["{}".format(build_type)]
         conanfile.cpp.build.bindirs = ["{}".format(build_type)]
     else:
@@ -50,9 +51,22 @@ def cmake_layout(conanfile, generator=None, src_folder=".", build_folder="build"
 
 
 def get_build_folder_custom_vars(conanfile):
+    conanfile_vars = conanfile.folders.build_folder_vars
+    build_vars = conanfile.conf.get("tools.cmake.cmake_layout:build_folder_vars", check_type=list)
+    if conanfile.tested_reference_str:
+        build_vars = build_vars or conanfile_vars or \
+                     ["settings.compiler", "settings.compiler.version", "settings.arch",
+                      "settings.compiler.cppstd", "settings.build_type", "options.shared"]
+    else:
+        try:
+            is_consumer = conanfile._conan_node.recipe == RECIPE_CONSUMER
+        except AttributeError:
+            is_consumer = False
+        if is_consumer:
+            build_vars = build_vars or conanfile_vars or []
+        else:
+            build_vars = conanfile_vars or []
 
-    build_vars = conanfile.conf.get("tools.cmake.cmake_layout:build_folder_vars",
-                                    default=[], check_type=list)
     ret = []
     for s in build_vars:
         group, var = s.split(".", 1)
@@ -62,7 +76,10 @@ def get_build_folder_custom_vars(conanfile):
         elif group == "options":
             value = conanfile.options.get_safe(var)
             if value is not None:
-                tmp = "{}_{}".format(var, value)
+                if var == "shared":
+                    tmp = "shared" if value else "static"
+                else:
+                    tmp = "{}_{}".format(var, value)
         else:
             raise ConanException("Invalid 'tools.cmake.cmake_layout:build_folder_vars' value, it has"
                                  " to start with 'settings.' or 'options.': {}".format(s))

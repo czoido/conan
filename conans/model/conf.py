@@ -39,6 +39,7 @@ BUILT_IN_CONFS = {
     # Tools
     "tools.android:ndk_path": "Argument for the CMAKE_ANDROID_NDK",
     "tools.build:skip_test": "Do not execute CMake.test() and Meson.test() when enabled",
+    "tools.build:download_source": "Force download of sources for every package",
     "tools.build:jobs": "Default compile jobs number -jX Ninja, Make, /MP VS (default: max CPUs)",
     "tools.build:sysroot": "Pass the --sysroot=<tools.build:sysroot> flag if available. (None by default)",
     "tools.build.cross_building:can_run": "Bool value that indicates whether is possible to run a non-native "
@@ -248,6 +249,13 @@ class Conf:
         :type other: Conf
         """
         return other._values == self._values
+
+    def validate(self):
+        for conf in self._values:
+            if conf.startswith("tools") or conf.startswith("core"):
+                if conf not in BUILT_IN_CONFS:
+                    raise ConanException(f"Unknown conf '{conf}'. Use 'conan config list' to "
+                                         "display existing configurations")
 
     def items(self):
         # FIXME: Keeping backward compatibility
@@ -610,3 +618,7 @@ class ConfDefinition:
                 break
             else:
                 raise ConanException("Bad conf definition: {}".format(line))
+
+    def validate(self):
+        for conf in self._pattern_confs.values():
+            conf.validate()

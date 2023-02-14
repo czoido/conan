@@ -7,7 +7,6 @@ import pytest
 
 from conans.client.downloaders.file_downloader import CachingFileDownloader
 from conans.errors import ConanException
-from conans.util.files import load
 
 
 class MockResponse(object):
@@ -70,17 +69,17 @@ class DownloaderUnitTest(unittest.TestCase):
         expected_content = b"some data"
         requester = MockRequester(expected_content)
         downloader = CachingFileDownloader(requester=requester)
-        downloader._download_with_retry("fake_url", file_path=self.target)
-        actual_content = load(self.target, binary=True)
+        downloader.download("fake_url", file_path=self.target)
+        actual_content = open(self.target, "rb").read()
         self.assertEqual(expected_content, actual_content)
 
     def test_resume_download_to_file_if_interrupted(self):
         expected_content = b"some data"
         requester = MockRequester(expected_content, chunk_size=4)
         downloader = CachingFileDownloader(requester=requester)
-        downloader._download_with_retry("fake_url", file_path=self.target, verify_ssl=None,
-                                        retry=0, retry_wait=0)
-        actual_content = load(self.target, binary=True)
+        downloader.download("fake_url", file_path=self.target, verify_ssl=None,
+                            retry=0, retry_wait=0)
+        actual_content = open(self.target, "rb").read()
         self.assertEqual(expected_content, actual_content)
 
     def test_fail_interrupted_download_to_file_if_no_progress(self):
@@ -102,8 +101,8 @@ class DownloaderUnitTest(unittest.TestCase):
         echo_header = {"Content-Encoding": "gzip", "Content-Length": len(expected_content) + 1}
         requester = MockRequester(expected_content, echo_header=echo_header)
         downloader = CachingFileDownloader(requester=requester)
-        downloader._download_with_retry("fake_url", file_path=self.target)
-        actual_content = load(self.target, binary=True)
+        downloader.download("fake_url", file_path=self.target)
+        actual_content = open(self.target, "rb").read()
         self.assertEqual(expected_content, actual_content)
 
     def test_download_with_compressed_content_and_smaller_content_length(self):
@@ -111,6 +110,6 @@ class DownloaderUnitTest(unittest.TestCase):
         echo_header = {"Content-Encoding": "gzip", "Content-Length": len(expected_content) - 1}
         requester = MockRequester(expected_content, echo_header=echo_header)
         downloader = CachingFileDownloader(requester=requester)
-        downloader._download_with_retry("fake_url", file_path=self.target)
-        actual_content = load(self.target, binary=True)
+        downloader.download("fake_url", file_path=self.target)
+        actual_content = open(self.target, "rb").read()
         self.assertEqual(expected_content, actual_content)
