@@ -1,4 +1,4 @@
-def branchName = env.BRANCH_NAME
+def branchName = "develop2"
 def jobName = env.JOB_NAME
 
 void cancelPrevious() {
