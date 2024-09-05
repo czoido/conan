@@ -17,34 +17,94 @@ jobs:
         with:
           access_token: ${{ secrets.GITHUB_TOKEN }}
 
-  test_matrix:
+  linux_unittests:
     needs: cancel_previous
+    runs-on: ubuntu-latest
+    container:
+      image: conanio/ci-unittests
     strategy:
       matrix:
-        os: [LinuxUnittests, LinuxFunctional, windows-latest, macos-latest]
         python-version: [3.8, 3.9, 3.12]
-    runs-on: ${{ matrix.os != 'windows-latest' && matrix.os != 'macos-latest' ? 'ubuntu-latest' : matrix.os }}
-    container: ${{ matrix.os == 'LinuxUnittests' ? 'conanio/ci-unittests' : matrix.os == 'LinuxFunctional' ? 'conanio/ci-functional' : null }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Set up Python ${{ matrix.python-version }}
-        if: matrix.os != 'LinuxUnittests' && matrix.os != 'LinuxFunctional'
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies (Linux)
-        if: matrix.os == 'LinuxUnittests' || matrix.os == 'LinuxFunctional'
         run: |
           pip install --upgrade pip
           pip install -r conans/requirements.txt
           pip install -r conans/requirements_dev.txt
           pip install meson
 
-      - name: Install dependencies (Windows/Mac)
-        if: matrix.os == 'windows-latest' || matrix.os == 'macos-latest'
+      - name: Run tests
+        run: |
+          pytest test/unittests --durations=20 -n 4
+
+  linux_functional:
+    needs: cancel_previous
+    runs-on: ubuntu-latest
+    container:
+      image: conanio/ci-functional
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.12]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: |
+          pip install --upgrade pip
+          pip install -r conans/requirements.txt
+          pip install -r conans/requirements_dev.txt
+          pip install meson
+
+      - name: Run tests
+        run: |
+          pytest test/functional --durations=20 -n 4
+
+  windows_tests:
+    needs: cancel_previous
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.12]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r conans/requirements.txt
+          pip install -r conans/requirements_dev.txt
+          pip install meson
+
+      - name: Run tests
+        run: |
+          pytest test/unittests --durations=20 -n 4
+
+  macos_tests:
+    needs: cancel_previous
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.12]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r conans/requirements.txt
@@ -58,7 +118,8 @@ jobs:
   deploy_pypitest:
     if: github.ref == 'refs/heads/develop2'
     runs-on: ubuntu-latest
-    container: conanio/ci-functional
+    container:
+      image: conanio/ci-functional
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -68,7 +129,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install twine
           python .ci/bump_dev_version.py
-          
+
       - name: Build and deploy to TestPyPI
         env:
 #          TWINE_USERNAME: ${{ secrets.PYPITEST_CONAN_CREDENTIALS_USERNAME }}
