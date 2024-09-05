@@ -131,7 +131,7 @@ jobs:
           python .ci/bump_dev_version.py
 
       - name: Build and deploy to TestPyPI
-        env:
+#        env:
 #          TWINE_USERNAME: ${{ secrets.PYPITEST_CONAN_CREDENTIALS_USERNAME }}
 #          TWINE_PASSWORD: ${{ secrets.PYPITEST_CONAN_CREDENTIALS_PASSWORD }}
         run: |
