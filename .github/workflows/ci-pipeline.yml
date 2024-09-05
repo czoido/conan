@@ -1,0 +1,79 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  cancel_previous:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel previous jobs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ secrets.GITHUB_TOKEN }}
+
+  test_matrix:
+    needs: cancel_previous
+    strategy:
+      matrix:
+        os: [LinuxUnittests, LinuxFunctional, windows-latest, macos-latest]
+        python-version: [3.8, 3.9, 3.12]
+    runs-on: ${{ matrix.os != 'windows-latest' && matrix.os != 'macos-latest' ? 'ubuntu-latest' : matrix.os }}
+    container: ${{ matrix.os == 'LinuxUnittests' ? 'conanio/ci-unittests' : matrix.os == 'LinuxFunctional' ? 'conanio/ci-functional' : null }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        if: matrix.os != 'LinuxUnittests' && matrix.os != 'LinuxFunctional'
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'LinuxUnittests' || matrix.os == 'LinuxFunctional'
+        run: |
+          pip install --upgrade pip
+          pip install -r conans/requirements.txt
+          pip install -r conans/requirements_dev.txt
+          pip install meson
+
+      - name: Install dependencies (Windows/Mac)
+        if: matrix.os == 'windows-latest' || matrix.os == 'macos-latest'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r conans/requirements.txt
+          pip install -r conans/requirements_dev.txt
+          pip install meson
+
+      - name: Run tests
+        run: |
+          pytest test/unittests --durations=20 -n 4
+
+  deploy_pypitest:
+    if: github.ref == 'refs/heads/develop2'
+    runs-on: ubuntu-latest
+    container: conanio/ci-functional
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies for deployment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install twine
+          python .ci/bump_dev_version.py
+          
+      - name: Build and deploy to TestPyPI
+        env:
+#          TWINE_USERNAME: ${{ secrets.PYPITEST_CONAN_CREDENTIALS_USERNAME }}
+#          TWINE_PASSWORD: ${{ secrets.PYPITEST_CONAN_CREDENTIALS_PASSWORD }}
+        run: |
+          rm -rf dist/
+          python setup.py sdist
+#          twine upload --repository-url https://test.pypi.org/legacy/ dist/*
