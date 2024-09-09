@@ -17,14 +17,9 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8]
-    defaults:
-      run:
-        working-directory: /home/conan  # Cambia el workspace al directorio /home/conan
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          path: /home/conan  # Asegura que el código se chequea en /home/conan
 
       - name: Set up Python ${{ matrix.python-version }}
         run: |
