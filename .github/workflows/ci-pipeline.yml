@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: conanio/ci-unittests
+      options: --user $UID:$GID
     strategy:
       matrix:
         python-version: [3.8, 3.9, 3.12]
@@ -32,7 +33,7 @@ jobs:
           ls -l /__w/_temp
       - name: Adjust container permissions
         run: |
-          sudo chown -R $USER:$USER /__w/_temp
+          chown -R $USER:$USER /__w/_temp
       - name: Checkout code
         uses: actions/checkout@v3
 
