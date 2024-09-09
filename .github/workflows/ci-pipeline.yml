@@ -18,11 +18,18 @@ jobs:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Build Docker image
+      - name: Pull Docker image (if exists)
+        id: pull_image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/my-custom-image:latest || echo "Image not found"
+
+      - name: Build Docker image (if not pulled)
+        if: steps.pull_image.outcome == 'failure'
         run: |
           docker build -t ghcr.io/${{ github.repository_owner }}/my-custom-image:latest -f ./ci/Dockerfile .
-
+      
       - name: Push Docker image to GHCR
+        if: steps.pull_image.outcome == 'failure'
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/my-custom-image:latest
 
