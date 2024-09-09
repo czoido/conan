@@ -14,7 +14,7 @@ RUN apt-get -qq update \
        libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
        xz-utils tk-dev libffi-dev liblzma-dev python-openssl git \
     && useradd -ms /bin/bash conan \
-    && mkdir -p /home/conan \
+    && mkdir -p /__w && mkdir -p /home/conan \
     && chown -R conan:conan /home/conan \
     && chown -R conan:conan /__w 
 
