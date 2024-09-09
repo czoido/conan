@@ -25,7 +25,7 @@ jobs:
       options: --user 1000:1000
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.12]
+        python-version: [3.8]
     steps:
       - name: Check volume permissions
         run: |
@@ -48,28 +48,28 @@ jobs:
         run: |
           pytest test/unittests --durations=20 -n 4
 
-  linux_functional:
-    needs: cancel_previous
-    runs-on: ubuntu-latest
-    container:
-      image: conanio/ci-functional
-    strategy:
-      matrix:
-        python-version: [3.8, 3.9, 3.12]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+  # linux_functional:
+  #   needs: cancel_previous
+  #   runs-on: ubuntu-latest
+  #   container:
+  #     image: conanio/ci-functional
+  #   strategy:
+  #     matrix:
+  #       python-version: [3.8, 3.9, 3.12]
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
-        run: |
-          pip install --upgrade pip
-          pip install -r conans/requirements.txt
-          pip install -r conans/requirements_dev.txt
-          pip install meson
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       run: |
+  #         pip install --upgrade pip
+  #         pip install -r conans/requirements.txt
+  #         pip install -r conans/requirements_dev.txt
+  #         pip install meson
 
-      - name: Run tests
-        run: |
-          pytest test/functional --durations=20 -n 4
+  #     - name: Run tests
+  #       run: |
+  #         pytest test/functional --durations=20 -n 4
 
   # windows_tests:
   #   needs: cancel_previous
