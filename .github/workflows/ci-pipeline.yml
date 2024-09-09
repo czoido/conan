@@ -9,14 +9,6 @@ on:
       - '*'
 
 jobs:
-  cancel_previous:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Cancel previous jobs
-        uses: styfle/cancel-workflow-action@0.11.0
-        with:
-          access_token: ${{ secrets.GITHUB_TOKEN }}
-
   linux_unittests:
     needs: cancel_previous
     runs-on: ubuntu-latest
@@ -27,14 +19,6 @@ jobs:
       matrix:
         python-version: [3.8]
     steps:
-      - name: Check volume permissions
-        run: |
-          ls -l /__w
-          ls -l /__w/_temp
-      - name: Adjust container permissions
-        run: |
-          chown -R 1000:1000 /__w/_temp
-          chmod -R 777 /__w/_temp
       - name: Checkout code
         uses: actions/checkout@v3
 
