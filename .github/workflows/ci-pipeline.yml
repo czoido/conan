@@ -9,11 +9,21 @@ on:
       - '*'
 
 jobs:
+  build_container:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t my-custom-image:latest -f ./ci/Dockerfile .
+
   linux_unittests:
+    needs: build_container
     runs-on: ubuntu-latest
     container:
-      image: conanio/ci-unittests
-      options: --user root
+      image: my-custom-image:latest
     strategy:
       matrix:
         python-version: [3.8]
