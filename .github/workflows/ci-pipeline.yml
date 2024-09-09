@@ -33,7 +33,7 @@ jobs:
           ls -l /__w/_temp
       - name: Adjust container permissions
         run: |
-          sudo chown -R 1000:1000 /__w/_temp
+          chown -R 1000:1000 /__w/_temp
           chmod -R 777 /__w/_temp
       - name: Checkout code
         uses: actions/checkout@v3
