@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: conanio/ci-unittests
-      options: --user 1000:1000
+      options: --user conan
     strategy:
       matrix:
         python-version: [3.8]
