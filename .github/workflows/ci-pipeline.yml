@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: conanio/ci-unittests
-      options: --user $UID:$GID
+      options: --user 1000:1000
     strategy:
       matrix:
         python-version: [3.8, 3.9, 3.12]
