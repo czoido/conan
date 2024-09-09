@@ -15,15 +15,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Build Docker image
         run: |
-          docker build -t my-custom-image:latest -f ./ci/Dockerfile .
+          docker build -t ghcr.io/${{ github.repository_owner }}/my-custom-image:latest -f ./ci/Dockerfile .
+
+      - name: Push Docker image to GHCR
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/my-custom-image:latest
 
   linux_unittests:
     needs: build_container
     runs-on: ubuntu-latest
     container:
-      image: my-custom-image:latest
+      image: ghcr.io/${{ github.repository_owner }}/my-custom-image:latest
     strategy:
       matrix:
         python-version: [3.8]
