@@ -10,7 +10,6 @@ on:
 
 jobs:
   linux_unittests:
-    needs: cancel_previous
     runs-on: ubuntu-latest
     container:
       image: conanio/ci-unittests
