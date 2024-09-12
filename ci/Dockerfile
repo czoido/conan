@@ -5,15 +5,13 @@ LABEL maintainer="Conan.io <info@conan.io>"
 ARG DEBIAN_FRONTEND=noninteractive
 ENV PY38 3.8.6
 
-# Install required tools for user management and other dependencies
 RUN apt-get -qq update \
     && apt-get -qq install -y --no-install-recommends \
-       sudo ca-certificates passwd \
-       # Required for pyenv
+       sudo ca-certificates adduser \
        make build-essential libssl-dev zlib1g-dev libbz2-dev \
        libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
        xz-utils tk-dev libffi-dev liblzma-dev git \
-    && useradd -ms /bin/bash --uid 1001 runner \
+    && adduser --disabled-password --gecos "" --uid 1001 runner \
     && groupadd docker --gid 123 \
     && usermod -aG sudo runner \
     && usermod -aG docker runner \
