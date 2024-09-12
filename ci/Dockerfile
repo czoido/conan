@@ -28,7 +28,9 @@ RUN curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-instal
     && eval "$(pyenv init --path)" \
     && pyenv install $PY38 \
     && pyenv global $PY38 \
-    && python -m ensurepip --upgrade
+    && python -m ensurepip --upgrade \
+    && chown -R runner:runner /home/runner/.pyenv
+
 
 
 
