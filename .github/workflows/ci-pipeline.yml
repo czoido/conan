@@ -62,14 +62,14 @@ jobs:
 
       - name: Set up Python ${{ matrix.python-version }}
         run: |
-          pip install --upgrade pip
-          pip install -r conans/requirements.txt
-          pip install -r conans/requirements_dev.txt
-          pip install meson
+          python -m pip install --upgrade pip
+          python -m pip install -r conans/requirements.txt
+          python -m pip install -r conans/requirements_dev.txt
+          python -m pip install meson
 
       - name: Run tests
         run: |
-          pytest test/unittests --durations=20 -n 4
+          python -m pytest test/unittests --durations=20 -n 4
 
   # linux_functional:
   #   needs: cancel_previous
