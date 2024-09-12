@@ -14,7 +14,6 @@ RUN apt-get -qq update \
        make build-essential libssl-dev zlib1g-dev libbz2-dev \
        libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
        xz-utils tk-dev libffi-dev liblzma-dev git \
-       passwd  # Installs 'adduser' and 'usermod' \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up pyenv environment and install Python version
@@ -26,20 +25,10 @@ RUN curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-instal
 RUN apt-get -qq remove make build-essential gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Check if the user 'runner' exists, if not, set necessary permissions
-RUN if ! id -u runner > /dev/null 2>&1; then \
-        adduser --disabled-password --gecos "" --uid 1001 runner; \
-        groupadd docker --gid 123; \
-        usermod -aG sudo runner; \
-        usermod -aG docker runner; \
-    fi \
-    && echo "%sudo   ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers \
-    && echo "Defaults env_keep += \"DEBIAN_FRONTEND\"" >> /etc/sudoers
-
 # Set up the work directory for the runner user
 WORKDIR /home/runner
 
-# Switch to the runner user, assuming it exists or was just created
+# Switch to the runner user
 USER runner
 
 # Ensure pyenv is available for the runner user
