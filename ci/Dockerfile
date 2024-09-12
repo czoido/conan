@@ -14,8 +14,9 @@ RUN apt-get -qq update \
        make build-essential libssl-dev zlib1g-dev libbz2-dev \
        libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
        xz-utils tk-dev libffi-dev liblzma-dev git \
-       adduser  # This installs adduser to create users
+       adduser \  # This installs adduser to create users
     && rm -rf /var/lib/apt/lists/*
+
 
 # Create the 'runner' user
 RUN adduser --disabled-password --gecos "" --uid 1001 runner \
