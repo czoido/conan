@@ -14,6 +14,7 @@ RUN apt-get -qq update \
        make build-essential libssl-dev zlib1g-dev libbz2-dev \
        libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
        xz-utils tk-dev libffi-dev liblzma-dev git \
+       passwd  # Installs 'adduser' and 'usermod' \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up pyenv environment and install Python version
@@ -46,4 +47,3 @@ RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> /home/runner/.bashrc \
     && echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> /home/runner/.bashrc \
     && echo 'eval "$(pyenv init --path)"' >> /home/runner/.bashrc \
     && echo 'eval "$(pyenv init -)"' >> /home/runner/.bashrc
-
