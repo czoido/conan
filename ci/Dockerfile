@@ -3,8 +3,9 @@ FROM ubuntu:latest
 LABEL maintainer="Conan.io <info@conan.io>"
 
 ARG DEBIAN_FRONTEND=noninteractive
-
 ENV PY38 3.8.6
+ENV PYENV_ROOT="/home/runner/.pyenv"
+ENV PATH="$PYENV_ROOT/bin:$PATH"
 
 # Install essential packages and dependencies for pyenv and other tools
 RUN apt-get -qq update \
@@ -15,18 +16,12 @@ RUN apt-get -qq update \
        xz-utils tk-dev libffi-dev liblzma-dev git \
     && rm -rf /var/lib/apt/lists/*
 
-# Set up environment variables for pyenv
-ENV PATH /home/runner/.pyenv/shims:/home/runner/.pyenv/bin:$PATH
-
-# Install pyenv and Python version
+# Set up pyenv environment and install Python version
 RUN curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash \
-    && pyenv init - \
-    && pyenv virtualenv-init - \
-    && pyenv update \
-    && pyenv install $PY38 \
-    && pyenv global $PY38
+    && bash -c "source $PYENV_ROOT/bin/pyenv-init.sh; pyenv install $PY38" \
+    && bash -c "source $PYENV_ROOT/bin/pyenv-init.sh; pyenv global $PY38"
 
-# Remove not needed packages except git
+# Clean up unnecessary packages
 RUN apt-get -qq remove make build-essential gcc \
     && rm -rf /var/lib/apt/lists/*
 
@@ -45,3 +40,10 @@ WORKDIR /home/runner
 
 # Switch to the runner user, assuming it exists or was just created
 USER runner
+
+# Ensure pyenv is available for the runner user
+RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> /home/runner/.bashrc \
+    && echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> /home/runner/.bashrc \
+    && echo 'eval "$(pyenv init --path)"' >> /home/runner/.bashrc \
+    && echo 'eval "$(pyenv init -)"' >> /home/runner/.bashrc
+
