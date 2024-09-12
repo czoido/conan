@@ -24,9 +24,12 @@ RUN adduser --disabled-password --gecos "" --uid 1001 runner \
 
 # Set up pyenv environment and install Python version
 RUN curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash \
-    && bash -c "source $PYENV_ROOT/bin/pyenv-init.sh; pyenv install $PY38" \
-    && bash -c "source $PYENV_ROOT/bin/pyenv-init.sh; pyenv global $PY38" \
-    && bash -c "python -m ensurepip --upgrade"
+    && export PATH="$PYENV_ROOT/bin:$PATH" \
+    && eval "$(pyenv init --path)" \
+    && pyenv install $PY38 \
+    && pyenv global $PY38 \
+    && python -m ensurepip --upgrade
+
 
 
 # Clean up unnecessary packages
