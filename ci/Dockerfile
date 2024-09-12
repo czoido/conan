@@ -5,14 +5,20 @@ LABEL maintainer="Conan.io <info@conan.io>"
 ARG DEBIAN_FRONTEND=noninteractive
 ENV PY38 3.8.6
 
-# Install basic dependencies for pyenv and other tools
+# Install required tools for user management and other dependencies
 RUN apt-get -qq update \
     && apt-get -qq install -y --no-install-recommends \
-       sudo ca-certificates \
+       sudo ca-certificates passwd \
        # Required for pyenv
        make build-essential libssl-dev zlib1g-dev libbz2-dev \
        libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
-       xz-utils tk-dev libffi-dev liblzma-dev git
+       xz-utils tk-dev libffi-dev liblzma-dev git \
+    && useradd -ms /bin/bash --uid 1001 runner \
+    && groupadd docker --gid 123 \
+    && usermod -aG sudo runner \
+    && usermod -aG docker runner \
+    && echo "%sudo   ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers \
+    && echo "Defaults env_keep += \"DEBIAN_FRONTEND\"" >> /etc/sudoers
 
 
 # Add 'runner' user similar to GitHub's runner user setup
