@@ -11,7 +11,7 @@ from conan.test.utils.tools import TestClient
 
 
 def editable_cmake(generator, build_folder=None):
-    c = TestClient()
+    c = TestClient(path_with_spaces=False)
     if generator is not None:
         c.save_home({"global.conf": "tools.cmake.cmaketoolchain:generator={}".format(generator)})
     c.save(pkg_cmake("dep", "0.1"), path=os.path.join(c.current_folder, "dep"))
