@@ -27,6 +27,7 @@ jobs:
     name: Conan (${{ matrix.test-type }}) (${{ matrix.python-version }})
 
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -94,7 +95,7 @@ jobs:
       - name: Install Cygwin extra packages
         if: matrix.test-type == 'functional'
         run: |
-          cyg-get automake gcc-g++ make binutils
+          cyg-get automake autotools autoconf libtool gcc-g++ make binutils
 
       - name: Install Pacman extra packages
         if: matrix.test-type == 'functional' && steps.msys2-tool.outputs.cache-hit != 'true'
@@ -107,21 +108,20 @@ jobs:
           C:\msys64\usr\bin\pacman -S automake --noconfirm
           C:\msys64\usr\bin\pacman -Q > msys-installed-packages.lock
 
-      # - name: Install VS 15 2017 Community edition
-      #   if: matrix.test-type == 'functional'
-      #   run: |
-      #     Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_community.exe" -OutFile "vs_installer.exe"
-      #     Start-Process -FilePath ".\vs_installer.exe" -ArgumentList `
-      #      "--quiet",  "--wait", "--norestart", "--nocache", `
-      #      "--add", "Microsoft.VisualStudio.Workload.VCTools", `
-      #      "--add", "Microsoft.VisualStudio.Component.VC.v141.Tools.x86.x64", `
-      #      "--add", "Microsoft.VisualStudio.Component.Windows81SDK", `
-      #      "--add", "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core", `
-      #      "--add", "Microsoft.Component.MSBuild", `
-      #      "--add", "Microsoft.VisualStudio.Component.VC.CMake.Project", `
-      #      "--add", "Microsoft.VisualStudio.Workload.NativeDesktop", `
-      #      "--add", "Microsoft.VisualStudio.Component.VC.v141.CoreBuildTools", `
-      #      "--add", "Microsoft.VisualStudio.Component.VC.v141.ATLMFC" -Wait
+      - name: Install VS 15 2017 Community edition
+        if: matrix.test-type == 'functional'
+        run: |
+          Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_community.exe" -OutFile "vs_installer.exe"
+          Start-Process -FilePath ".\vs_installer.exe" -ArgumentList `
+           "--quiet",  "--wait", "--norestart", "--nocache", `
+           "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", `
+           "--add", "Microsoft.VisualStudio.Component.Windows81SDK", `
+           "--add", "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core", `
+           "--add", "Microsoft.Component.MSBuild", `
+           "--add", "Microsoft.VisualStudio.Component.VC.CMake.Project", `
+           "--add", "Microsoft.VisualStudio.Workload.NativeDesktop", `
+           "--add", "Microsoft.VisualStudio.Component.VC.CoreBuildTools", `
+           "--add", "Microsoft.VisualStudio.Component.VC.ATLMFC" -Wait
 
       - name: Cache CMake and Bazel installations
         if: matrix.test-type == 'functional'
@@ -136,11 +136,28 @@ jobs:
             C:\tools\bazel\7.1.2
           key: ${{ runner.os }}-conan-tools-cache
 
-      - name: Install CMake versions
+      - name: Build CMake old versions of CMake
         if: matrix.test-type == 'functional' && steps.cache-tools.outputs.cache-hit != 'true'
         run: |
-          $CMAKE_VERSIONS = "3.15.7", "3.19.7", "3.23.5"
-          foreach ($version in $CMAKE_VERSIONS) {
+          $CMAKE_BUILD_VERSIONS = "3.15.7", "3.19.7"
+          foreach ($version in $CMAKE_BUILD_VERSIONS) {
+            Write-Host "Downloading CMake version $version for Windows..."
+            $destination = "C:\tools\cmake\$version"
+            if (-not (Test-Path $destination)) {
+                New-Item -Path $destination -ItemType Directory
+            }
+            $major_minor_version = ($version -split '\.')[0..1] -join '.'
+            $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-win64-x64.zip"
+            $zipFile = "cmake-$version-windows-x86_64.zip"
+            Invoke-WebRequest -Uri $url -OutFile $zipFile
+            Expand-Archive -Path $zipFile -DestinationPath $destination -Force
+            Remove-Item $zipFile
+          }
+      - name: Install modern CMake versions
+        if: matrix.test-type == 'functional' && steps.cache-tools.outputs.cache-hit != 'true'
+        run: |
+          $CMAKE_BUILD_VERSIONS = "3.23.5"
+          foreach ($version in $CMAKE_BUILD_VERSIONS) {
             $destination = "C:\tools\cmake\$version"
             if (-not (Test-Path $destination)) {
                 New-Item -Path $destination -ItemType Directory
@@ -171,4 +188,4 @@ jobs:
           }
       - name: Run Tests
         run: |
-            pytest test/functional --durations=20 -vvv -n=4
+           pytest test/functional --durations=20 -vvv -n=4
