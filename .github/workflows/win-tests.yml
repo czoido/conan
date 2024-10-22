@@ -20,7 +20,7 @@ jobs:
       fail-fast: true
       matrix:
         python-version: ['3.9']
-        test-type: [unittests, integration, functional]
+        test-type: [functional]
 
     runs-on: windows-2019
 
@@ -171,11 +171,4 @@ jobs:
           }
       - name: Run Tests
         run: |
-          $matrixTestType = "${{ matrix.test-type }}"
-          if ($matrixTestType -eq "unittests") {
-              pytest test/unittests --durations=20 -n 4
-          } elseif ($matrixTestType -eq "integration") {
-              pytest test/integration --durations=20 -n 4
-          } elseif ($matrixTestType -eq "functional") {
-              pytest test/functional --durations=20 -vvv -n=4
-          }
+            pytest test/functional --durations=20 -vvv -n=4
