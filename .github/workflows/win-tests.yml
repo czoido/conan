@@ -27,34 +27,6 @@ jobs:
     name: Conan (${{ matrix.test-type }}) (${{ matrix.python-version }})
 
     steps:
-
-      - name: Checks
-        run: |
-          where ninja
-
-      - name: Get MinGW installation path
-        shell: powershell
-        run: |
-          $mingwPackage = Get-Item -Path 'C:\ProgramData\chocolatey\lib\mingw'
-          if ($mingwPackage -ne $null) {
-            $mingwBinPath = Join-Path $mingwPackage.FullName 'tools\install\mingw64\bin'
-            Write-Host "MinGW installation path: $mingwBinPath"
-            # Establecer una variable de entorno para usarla más adelante
-            echo "MINGW_BIN_PATH=$mingwBinPath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-          } else {
-            Write-Host "MinGW is not installed."
-          }
-
-      - name: Add MinGW to PATH
-        if: env.MINGW_BIN_PATH != ''
-        run: |
-          echo "Adding MinGW to PATH"
-          echo "${{ env.MINGW_BIN_PATH }}" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Verify MinGW installation
-        run: |
-          gcc --version
-
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -197,13 +169,13 @@ jobs:
               Expand-Archive -Path $zipFile -DestinationPath $destination -Force
               Remove-Item $zipFile
           }
-      # - name: Run Tests
-      #   run: |
-      #     $matrixTestType = "${{ matrix.test-type }}"
-      #     if ($matrixTestType -eq "unittests") {
-      #         pytest test/unittests --durations=20 -n 4
-      #     } elseif ($matrixTestType -eq "integration") {
-      #         pytest test/integration --durations=20 -n 4
-      #     } elseif ($matrixTestType -eq "functional") {
-      #         pytest test/functional --durations=20 -vvv -n=4
-      #     }
+      - name: Run Tests
+        run: |
+          $matrixTestType = "${{ matrix.test-type }}"
+          if ($matrixTestType -eq "unittests") {
+              pytest test/unittests --durations=20 -n 4
+          } elseif ($matrixTestType -eq "integration") {
+              pytest test/integration --durations=20 -n 4
+          } elseif ($matrixTestType -eq "functional") {
+              pytest test/functional --durations=20 -vvv -n=4
+          }
