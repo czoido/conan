@@ -28,6 +28,33 @@ jobs:
 
     steps:
 
+      - name: Checks
+        run: |
+          where ninja
+
+      - name: Get MinGW installation path
+        shell: powershell
+        run: |
+          $mingwPackage = Get-Item -Path 'C:\ProgramData\chocolatey\lib\mingw'
+          if ($mingwPackage -ne $null) {
+            $mingwBinPath = Join-Path $mingwPackage.FullName 'tools\install\mingw64\bin'
+            Write-Host "MinGW installation path: $mingwBinPath"
+            # Establecer una variable de entorno para usarla más adelante
+            echo "MINGW_BIN_PATH=$mingwBinPath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            Write-Host "MinGW is not installed."
+          }
+
+      - name: Add MinGW to PATH
+        if: env.MINGW_BIN_PATH != ''
+        run: |
+          echo "Adding MinGW to PATH"
+          echo "${{ env.MINGW_BIN_PATH }}" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verify MinGW installation
+        run: |
+          gcc --version
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -137,28 +164,11 @@ jobs:
             C:\tools\bazel\7.1.2
           key: ${{ runner.os }}-conan-tools-cache
 
-      - name: Build CMake old versions of CMake
+      - name: Install CMake versions
         if: matrix.test-type == 'functional' && steps.cache-tools.outputs.cache-hit != 'true'
         run: |
-          $CMAKE_BUILD_VERSIONS = "3.15.7", "3.19.7"
-          foreach ($version in $CMAKE_BUILD_VERSIONS) {
-            Write-Host "Downloading CMake version $version for Windows..."
-            $destination = "C:\tools\cmake\$version"
-            if (-not (Test-Path $destination)) {
-                New-Item -Path $destination -ItemType Directory
-            }
-            $major_minor_version = ($version -split '\.')[0..1] -join '.'
-            $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-win64-x64.zip"
-            $zipFile = "cmake-$version-windows-x86_64.zip"
-            Invoke-WebRequest -Uri $url -OutFile $zipFile
-            Expand-Archive -Path $zipFile -DestinationPath $destination -Force
-            Remove-Item $zipFile
-          }
-      - name: Install modern CMake versions
-        if: matrix.test-type == 'functional' && steps.cache-tools.outputs.cache-hit != 'true'
-        run: |
-          $CMAKE_BUILD_VERSIONS = "3.23.5"
-          foreach ($version in $CMAKE_BUILD_VERSIONS) {
+          $CMAKE_VERSIONS = "3.15.7", "3.19.7", "3.23.5"
+          foreach ($version in $CMAKE_VERSIONS) {
             $destination = "C:\tools\cmake\$version"
             if (-not (Test-Path $destination)) {
                 New-Item -Path $destination -ItemType Directory
