@@ -31,7 +31,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache Visual Studio Installer
+     - name: Cache Visual Studio Installer
         uses: actions/cache@v4
         with:
           path: D:\VS2017Cache
@@ -108,20 +108,43 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            C:\tools\cmake
-            C:\tools\bazel
+            C:\tools\cmake\3.15.7
+            C:\tools\cmake\3.19.7
+            C:\tools\cmake\3.23.5
+            C:\tools\bazel\6.3.2
+            C:\tools\bazel\7.1.2
           key: ${{ runner.os }}-conan-tools-cache-v1
 
-      - name: Build CMake versions
+      - name: Build older versions of CMake
         if: steps.cache-tools.outputs.cache-hit != 'true' && matrix.test-type == 'functional'
         run: |
-          $CMAKE_BUILD_VERSIONS = "3.15.7", "3.19.7", "3.23.5"
-          foreach ($version in $CMAKE_BUILD_VERSIONS) {
+          $CMAKE_OLD_VERSIONS = @("3.15.7", "3.19.7")
+          foreach ($version in $CMAKE_OLD_VERSIONS) {
             Write-Host "Downloading CMake version $version for Windows..."
             $destination = "C:\tools\cmake\$version"
             if (-not (Test-Path $destination)) {
               New-Item -Path $destination -ItemType Directory
             }
+            # Las versiones anteriores usan 'win64-x64' en la URL
+            $major_minor_version = ($version -split '\.')[0..1] -join '.'
+            $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-win64-x64.zip"
+            $zipFile = "cmake-$version-win64-x64.zip"
+            Invoke-WebRequest -Uri $url -OutFile $zipFile
+            Expand-Archive -Path $zipFile -DestinationPath $destination -Force
+            Remove-Item $zipFile
+          }
+
+      - name: Install modern versions of CMake
+        if: steps.cache-tools.outputs.cache-hit != 'true' && matrix.test-type == 'functional'
+        run: |
+          $CMAKE_NEW_VERSIONS = @("3.23.5")
+          foreach ($version in $CMAKE_NEW_VERSIONS) {
+            Write-Host "Downloading CMake version $version for Windows..."
+            $destination = "C:\tools\cmake\$version"
+            if (-not (Test-Path $destination)) {
+              New-Item -Path $destination -ItemType Directory
+            }
+            # Las versiones modernas usan 'windows-x86_64' en la URL
             $major_minor_version = ($version -split '\.')[0..1] -join '.'
             $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-windows-x86_64.zip"
             $zipFile = "cmake-$version-windows-x86_64.zip"
@@ -133,8 +156,8 @@ jobs:
       - name: Install Bazel versions
         if: steps.cache-tools.outputs.cache-hit != 'true' && matrix.test-type == 'functional'
         run: |
-          $BAZEL_BUILD_VERSIONS = "6.3.2", "7.1.2"
-          foreach ($version in $BAZEL_BUILD_VERSIONS) {
+          $BAZEL_VERSIONS = @("6.3.2", "7.1.2")
+          foreach ($version in $BAZEL_VERSIONS) {
             Write-Host "Downloading Bazel version $version for Windows..."
             $destination = "C:\tools\bazel\$version"
             if (-not (Test-Path $destination)) {
