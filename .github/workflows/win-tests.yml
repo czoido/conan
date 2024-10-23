@@ -20,7 +20,7 @@ jobs:
       fail-fast: true
       matrix:
         python-version: ['3.9']
-        test-type: [unittests, integration, functional]
+        test-type: [functional]
 
     runs-on: windows-2022
 
@@ -168,14 +168,6 @@ jobs:
          $randomFolder = [System.IO.Path]::Combine("D:\\", "tmp_tests", $shortGuid)
          New-Item -ItemType Directory -Force -Path $randomFolder
          $env:CONAN_TEST_FOLDER = $randomFolder
+         $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
+         pytest test -vvv --durations=20 --numprocesses=auto
  
-         $matrixTestType = "${{ matrix.test-type }}"
-         if ($matrixTestType -eq "unittests") {
-             pytest test/unittests --durations=20 --numprocesses=auto
-         } elseif ($matrixTestType -eq "integration") {
-             pytest test/integration --durations=20 --numprocesses=auto
-         } elseif ($matrixTestType -eq "functional") {
-             $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
-             pytest test/functional -vvv --durations=20 --numprocesses=auto
-         }
-
