@@ -133,17 +133,25 @@ jobs:
         uses: actions/cache@v4
         with:
           path: C:\msys64
-          key: msys2-${{ runner.os }}-${{ hashFiles('msys2-packages.txt') }}
+          key: msys2-${{ runner.os }}-v1
           restore-keys: |
             msys2-${{ runner.os }}-
 
-      - name: Update package database
-        run: C:\msys64\usr\bin\pacman -Sy --noconfirm
-
       - name: Install Pacman extra packages
+        shell: pwsh
         if: steps.cache-msys2.outputs.cache-hit != 'true'
         run: |
-          C:\msys64\usr\bin\pacman -S --needed --noconfirm - < msys2-packages.txt
+            $packages = @(
+            'mingw-w64-x86_64-toolchain',
+            'mingw-w64-i686-toolchain',
+            'base-devel',
+            'gcc',
+            'autoconf-wrapper',
+            'automake'
+            )
+            C:\msys64\usr\bin\pacman -Sy --noconfirm
+            C:\msys64\usr\bin\pacman -S --needed --noconfirm $packages
+
 
       - name: Cache CMake and Bazel installations
         if: matrix.test-type == 'functional'
