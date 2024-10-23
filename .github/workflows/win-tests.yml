@@ -26,154 +26,171 @@ jobs:
 
     steps:
 
-      - name: Checkout code
-        uses: actions/checkout@v4
+    #   - name: Checkout code
+    #     uses: actions/checkout@v4
 
-      - name: Remove installed CMake version
-        run: |
-            Remove-Item -Recurse -Force "C:/Program Files/CMake"
+    #   - name: Remove installed CMake version
+    #     run: |
+    #         Remove-Item -Recurse -Force "C:/Program Files/CMake"
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+    #   - name: Set up Python ${{ matrix.python-version }}
+    #     uses: actions/setup-python@v5
+    #     with:
+    #       python-version: ${{ matrix.python-version }}
 
-      - name: Cache pip packages
+    #   - name: Cache pip packages
+    #     uses: actions/cache@v4
+    #     with:
+    #       path: C:\Users\runneradmin\AppData\Local\pip\cache
+    #       key: pip-packages-${{ runner.os }}-${{ hashFiles('conans/requirements*.txt') }}
+    #       restore-keys: |
+    #         pip-packages-${{ runner.os }}-
+
+    #   - name: Install Python requirements
+    #     run: |
+    #       pip install --upgrade pip
+    #       pip install -r conans/requirements.txt
+    #       pip install -r conans/requirements_server.txt
+    #       pip install -r conans/requirements_dev.txt
+    #       pip install meson
+
+      - name: Cache Chocolatey packages
         uses: actions/cache@v4
         with:
-          path: C:\Users\runneradmin\AppData\Local\pip\cache
-          key: pip-packages-${{ runner.os }}-${{ hashFiles('conans/requirements*.txt') }}
+          path: C:\choco-cache
+          key: choco-packages-${{ runner.os }}-v1
           restore-keys: |
-            pip-packages-${{ runner.os }}-
+            choco-packages-${{ runner.os }}-
 
-      - name: Install Python requirements
+      - name: Download Chocolatey packages (if not cached)
+        if: steps.cache-choco.outputs.cache-hit != 'true'
         run: |
-          pip install --upgrade pip
-          pip install -r conans/requirements.txt
-          pip install -r conans/requirements_server.txt
-          pip install -r conans/requirements_dev.txt
-          pip install meson
+          mkdir C:\choco-cache
+          choco download pkgconfiglite --version 0.28 --output-directory C:\choco-cache
+          choco download ninja --version 1.10.2 --output-directory C:\choco-cache
+          choco download mingw --output-directory C:\choco-cache
+          choco download cygwin --output-directory C:\choco-cache
+          choco download cyg-get --output-directory C:\choco-cache
 
-      - name: Install Chocolatey packages
+      - name: Install Chocolatey packages from cache
         run: |
-          choco install pkgconfiglite --version 0.28
-          choco install ninja --version 1.10.2
-          choco install mingw
-          choco install cygwin
-          choco install cyg-get
-          cyg-get automake gcc-g++ make binutils --verbose
+          choco install C:\choco-cache\pkgconfiglite.0.28.nupkg --source C:\choco-cache
+          choco install C:\choco-cache\ninja.1.10.2.nupkg --source C:\choco-cache
+          choco install C:\choco-cache\mingw.nupkg --source C:\choco-cache
+          choco install C:\choco-cache\cygwin.nupkg --source C:\choco-cache
+          choco install C:\choco-cache\cyg-get.nupkg --source C:\choco-cache
 
-      - name: Install Pacman extra packages
-        run: |
-          C:\msys64\usr\bin\pacman -Syuu --noconfirm
-          C:\msys64\usr\bin\pacman -S mingw-w64-x86_64-toolchain --noconfirm
-          C:\msys64\usr\bin\pacman -S mingw-w64-i686-toolchain --noconfirm
-          C:\msys64\usr\bin\pacman -S base-devel gcc --noconfirm
-          C:\msys64\usr\bin\pacman -S autoconf-wrapper --noconfirm
-          C:\msys64\usr\bin\pacman -S automake --noconfirm
+    #   - name: Install Pacman extra packages
+    #     run: |
+    #       C:\msys64\usr\bin\pacman -Syuu --noconfirm
+    #       C:\msys64\usr\bin\pacman -S mingw-w64-x86_64-toolchain --noconfirm
+    #       C:\msys64\usr\bin\pacman -S mingw-w64-i686-toolchain --noconfirm
+    #       C:\msys64\usr\bin\pacman -S base-devel gcc --noconfirm
+    #       C:\msys64\usr\bin\pacman -S autoconf-wrapper --noconfirm
+    #       C:\msys64\usr\bin\pacman -S automake --noconfirm
 
-      - name: Install VS 15 2017 Community edition
-        run: |
-            Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_buildtools.exe" -OutFile "vs_buildtools.exe"
-            Start-Process -FilePath ".\vs_buildtools.exe" -ArgumentList `
-            "--quiet",  "--wait", "--norestart", "--nocache", `
-            "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", `
-            "--add", "Microsoft.VisualStudio.Component.Windows81SDK", `
-            "--add", "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core", `
-            "--add", "Microsoft.Component.MSBuild", `
-            "--add", "Microsoft.VisualStudio.Component.VC.140", `
-            "--add", "Microsoft.VisualStudio.Component.VC.v141.x86.x64" -Wait
+    #   - name: Install VS 15 2017 Community edition
+    #     run: |
+    #         Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_buildtools.exe" -OutFile "vs_buildtools.exe"
+    #         Start-Process -FilePath ".\vs_buildtools.exe" -ArgumentList `
+    #         "--quiet",  "--wait", "--norestart", "--nocache", `
+    #         "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", `
+    #         "--add", "Microsoft.VisualStudio.Component.Windows81SDK", `
+    #         "--add", "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core", `
+    #         "--add", "Microsoft.Component.MSBuild", `
+    #         "--add", "Microsoft.VisualStudio.Component.VC.140", `
+    #         "--add", "Microsoft.VisualStudio.Component.VC.v141.x86.x64" -Wait
 
-      - name: Check Visual Studio installations and toolsets
-        run: |
-          # List all Visual Studio installations
-          & 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe' -all -products * -format json | ConvertFrom-Json | ForEach-Object {
-              Write-Host "Installation Path: $_.installationPath"
-              Write-Host "Product: $_.catalog_productDisplayName"
-              Write-Host "Version: $_.catalog_productLineVersion"
-          }
+    #   - name: Check Visual Studio installations and toolsets
+    #     run: |
+    #       # List all Visual Studio installations
+    #       & 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe' -all -products * -format json | ConvertFrom-Json | ForEach-Object {
+    #           Write-Host "Installation Path: $_.installationPath"
+    #           Write-Host "Product: $_.catalog_productDisplayName"
+    #           Write-Host "Version: $_.catalog_productLineVersion"
+    #       }
 
-          # List the available toolsets in Visual Studio
-          $vsInstallationPath = (Get-Item 'C:\Program Files (x86)\Microsoft Visual Studio\2017\Community').FullName
-          $vcvarsPath = "$vsInstallationPath\VC\Auxiliary\Build\vcvarsall.bat"
-          Write-Host "Toolsets in Visual Studio:"
-          cmd.exe /c "$vcvarsPath -help"
+    #       # List the available toolsets in Visual Studio
+    #       $vsInstallationPath = (Get-Item 'C:\Program Files (x86)\Microsoft Visual Studio\2017\Community').FullName
+    #       $vcvarsPath = "$vsInstallationPath\VC\Auxiliary\Build\vcvarsall.bat"
+    #       Write-Host "Toolsets in Visual Studio:"
+    #       cmd.exe /c "$vcvarsPath -help"
 
-      - name: Cache CMake and Bazel installations
-        id: cache-tools
-        uses: actions/cache@v4
-        with:
-          path: |
-            C:\tools\cmake\3.15.7
-            C:\tools\cmake\3.19.7
-            C:\tools\cmake\3.23.5
-            C:\tools\bazel\6.3.2
-            C:\tools\bazel\7.1.2
-          key: ${{ runner.os }}-conan-tools-cache
+    #   - name: Cache CMake and Bazel installations
+    #     id: cache-tools
+    #     uses: actions/cache@v4
+    #     with:
+    #       path: |
+    #         C:\tools\cmake\3.15.7
+    #         C:\tools\cmake\3.19.7
+    #         C:\tools\cmake\3.23.5
+    #         C:\tools\bazel\6.3.2
+    #         C:\tools\bazel\7.1.2
+    #       key: ${{ runner.os }}-conan-tools-cache
 
-      - name: Build CMake old versions of CMake
-        if: steps.cache-tools.outputs.cache-hit != 'true'
-        run: |
-          $CMAKE_BUILD_VERSIONS = "3.15.7", "3.19.7"
-          foreach ($version in $CMAKE_BUILD_VERSIONS) {
-            Write-Host "Downloading CMake version $version for Windows..."
-            $destination = "C:\tools\cmake\$version"
-            if (-not (Test-Path $destination)) {
-                New-Item -Path $destination -ItemType Directory
-            }
-            $major_minor_version = ($version -split '\.')[0..1] -join '.'
-            $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-win64-x64.zip"
-            $zipFile = "cmake-$version-windows-x86_64.zip"
-            Invoke-WebRequest -Uri $url -OutFile $zipFile
-            Expand-Archive -Path $zipFile -DestinationPath $destination -Force
-            Remove-Item $zipFile
-          }
-      - name: Install modern CMake versions
-        if: steps.cache-tools.outputs.cache-hit != 'true'
-        run: |
-          $CMAKE_BUILD_VERSIONS = "3.23.5"
-          foreach ($version in $CMAKE_BUILD_VERSIONS) {
-            $destination = "C:\tools\cmake\$version"
-            if (-not (Test-Path $destination)) {
-                New-Item -Path $destination -ItemType Directory
-            }
-            $major_minor_version = ($version -split '\.')[0..1] -join '.'
-            $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-windows-x86_64.zip"
-            $zipFile = "cmake-$version-windows-x86_64.zip"
-            Invoke-WebRequest -Uri $url -OutFile $zipFile
-            Expand-Archive -Path $zipFile -DestinationPath $destination -Force
-            Remove-Item $zipFile
-          }
-      - name: Install Bazel versions
-        if: steps.cache-tools.outputs.cache-hit != 'true'
-        run: |
-          $BAZEL_BUILD_VERSIONS = "6.3.2", "7.1.2"
-          foreach ($version in $BAZEL_BUILD_VERSIONS) {
-              Write-Host "Downloading Bazel version $version for Windows..."
-              $destination = "C:\tools\bazel\$version"
-              if (-not (Test-Path $destination)) {
-                  New-Item -Path $destination -ItemType Directory
-              }
-              $major_minor_version = ($version -split '\.')[0..1] -join '.'
-              $url = "https://github.com/bazelbuild/bazel/releases/download/$version/bazel-$version-windows-x86_64.zip"
-              $zipFile = "bazel-$version-windows-x86_64.zip"
-              Invoke-WebRequest -Uri $url -OutFile $zipFile
-              Expand-Archive -Path $zipFile -DestinationPath $destination -Force
-              Remove-Item $zipFile
-          }
+    #   - name: Build CMake old versions of CMake
+    #     if: steps.cache-tools.outputs.cache-hit != 'true'
+    #     run: |
+    #       $CMAKE_BUILD_VERSIONS = "3.15.7", "3.19.7"
+    #       foreach ($version in $CMAKE_BUILD_VERSIONS) {
+    #         Write-Host "Downloading CMake version $version for Windows..."
+    #         $destination = "C:\tools\cmake\$version"
+    #         if (-not (Test-Path $destination)) {
+    #             New-Item -Path $destination -ItemType Directory
+    #         }
+    #         $major_minor_version = ($version -split '\.')[0..1] -join '.'
+    #         $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-win64-x64.zip"
+    #         $zipFile = "cmake-$version-windows-x86_64.zip"
+    #         Invoke-WebRequest -Uri $url -OutFile $zipFile
+    #         Expand-Archive -Path $zipFile -DestinationPath $destination -Force
+    #         Remove-Item $zipFile
+    #       }
+    #   - name: Install modern CMake versions
+    #     if: steps.cache-tools.outputs.cache-hit != 'true'
+    #     run: |
+    #       $CMAKE_BUILD_VERSIONS = "3.23.5"
+    #       foreach ($version in $CMAKE_BUILD_VERSIONS) {
+    #         $destination = "C:\tools\cmake\$version"
+    #         if (-not (Test-Path $destination)) {
+    #             New-Item -Path $destination -ItemType Directory
+    #         }
+    #         $major_minor_version = ($version -split '\.')[0..1] -join '.'
+    #         $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-windows-x86_64.zip"
+    #         $zipFile = "cmake-$version-windows-x86_64.zip"
+    #         Invoke-WebRequest -Uri $url -OutFile $zipFile
+    #         Expand-Archive -Path $zipFile -DestinationPath $destination -Force
+    #         Remove-Item $zipFile
+    #       }
+    #   - name: Install Bazel versions
+    #     if: steps.cache-tools.outputs.cache-hit != 'true'
+    #     run: |
+    #       $BAZEL_BUILD_VERSIONS = "6.3.2", "7.1.2"
+    #       foreach ($version in $BAZEL_BUILD_VERSIONS) {
+    #           Write-Host "Downloading Bazel version $version for Windows..."
+    #           $destination = "C:\tools\bazel\$version"
+    #           if (-not (Test-Path $destination)) {
+    #               New-Item -Path $destination -ItemType Directory
+    #           }
+    #           $major_minor_version = ($version -split '\.')[0..1] -join '.'
+    #           $url = "https://github.com/bazelbuild/bazel/releases/download/$version/bazel-$version-windows-x86_64.zip"
+    #           $zipFile = "bazel-$version-windows-x86_64.zip"
+    #           Invoke-WebRequest -Uri $url -OutFile $zipFile
+    #           Expand-Archive -Path $zipFile -DestinationPath $destination -Force
+    #           Remove-Item $zipFile
+    #       }
 
-      - name: Run Tests
-        run: |
-          $shortGuid = [System.Guid]::NewGuid().ToString().Substring(0, 4)
-          $randomFolder = [System.IO.Path]::Combine("D:\\", "tmp_tests", $shortGuid)
-          New-Item -ItemType Directory -Force -Path $randomFolder
-          $env:CONAN_TEST_FOLDER = $randomFolder
-          $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
-          Remove-Item 'C:\Strawberry' -Recurse
-          pytest `
-            test/functional/test_profile_detect_api.py `
-            test/functional/toolchains/cmake/test_cmake_toolchain_win_clang.py `
-            test/integration/toolchains/microsoft/vcvars_test.py `
-            test/functional/toolchains/microsoft/test_msbuild.py `
-            test/functional/toolchains/microsoft/test_v2_msbuild_template.py `
-            -vvv
+    #   - name: Run Tests
+    #     run: |
+    #       $shortGuid = [System.Guid]::NewGuid().ToString().Substring(0, 4)
+    #       $randomFolder = [System.IO.Path]::Combine("D:\\", "tmp_tests", $shortGuid)
+    #       New-Item -ItemType Directory -Force -Path $randomFolder
+    #       $env:CONAN_TEST_FOLDER = $randomFolder
+    #       $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
+    #       Remove-Item 'C:\Strawberry' -Recurse
+    #       pytest `
+    #         test/functional/test_profile_detect_api.py `
+    #         test/functional/toolchains/cmake/test_cmake_toolchain_win_clang.py `
+    #         test/integration/toolchains/microsoft/vcvars_test.py `
+    #         test/functional/toolchains/microsoft/test_msbuild.py `
+    #         test/functional/toolchains/microsoft/test_v2_msbuild_template.py `
+    #         -vvv
