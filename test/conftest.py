@@ -142,7 +142,7 @@ tools_locations = {
         "platform": "Windows",
         "default": "system",
         "exe": "make",
-        "system": {"path": {'Windows': windows_choco_root}},
+        "system": {"path": {'Windows': "c:\tools\cygwin"}},
     },
     'bazel': {
         "default": "6.3.2",
