@@ -34,28 +34,28 @@ jobs:
       - name: Cache Visual Studio Installer
         uses: actions/cache@v4
         with:
-            path: C:\VS2017Cache
-            key: vs2017cache
+          path: D:\VS2017Cache
+          key: vs2017cache-${{ runner.os }}-cpp-components-v1
 
       - name: Install Visual Studio from Cache
         if: matrix.test-type == 'functional'
         run: |
-            $Components = @(
-                'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
-                'Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core',
-                'Microsoft.VisualStudio.Component.VC.CoreBuildTools'
-            )
-            $CachePath = 'D:\VS2017Cache'
+          $Components = @(
+            'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+            'Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core',
+            'Microsoft.VisualStudio.Component.VC.CoreBuildTools'
+          )
+          $CachePath = 'D:\VS2017Cache'
 
-            if (!(Test-Path $CachePath)) {
-                New-Item -ItemType Directory -Path $CachePath | Out-Null
-            }
+          if (!(Test-Path $CachePath)) {
+            New-Item -ItemType Directory -Path $CachePath | Out-Null
+          }
 
-            if (!(Test-Path "$CachePath\vs_community.exe")) {
-                Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_community.exe" -OutFile "$CachePath\vs_community.exe"
-                & "$CachePath\vs_community.exe" --layout $CachePath --add $Components --lang en-US
-            }
-            & "$CachePath\vs_community.exe" --noweb --quiet --wait --norestart --add $Components
+          if (!(Test-Path "$CachePath\vs_community.exe")) {
+            Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_community.exe" -OutFile "$CachePath\vs_community.exe"
+            & "$CachePath\vs_community.exe" --layout $CachePath --add $Components --lang en-US
+          }
+          & "$CachePath\vs_community.exe" --noweb --quiet --wait --norestart --add $Components
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -63,6 +63,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Cache pip packages
+        id: cache-pip
         uses: actions/cache@v4
         with:
           path: C:\Users\runneradmin\AppData\Local\pip\cache
@@ -77,16 +78,6 @@ jobs:
           pip install -r conans/requirements_server.txt
           pip install -r conans/requirements_dev.txt
           pip install meson
-
-      - name: Cache Chocolatey packages and shims
-        uses: actions/cache@v4
-        with:
-          path: |
-            C:\ProgramData\chocolatey\lib
-            C:\ProgramData\chocolatey\bin
-          key: choco-packages-${{ runner.os }}-${{ matrix.test-type }}
-          restore-keys: |
-            choco-packages-${{ runner.os }}-
 
       - name: Install Chocolatey packages
         if: matrix.test-type == 'functional'
@@ -112,14 +103,14 @@ jobs:
       - name: Set up MSYS2
         uses: msys2/setup-msys2@v2
         with:
-            update: false
-            install: >
-                mingw-w64-x86_64-toolchain
-                mingw-w64-i686-toolchain
-                base-devel
-                gcc
-                autoconf-wrapper
-                automake
+          update: false
+          install: >
+            mingw-w64-x86_64-toolchain
+            mingw-w64-i686-toolchain
+            base-devel
+            gcc
+            autoconf-wrapper
+            automake
 
       - name: Cache CMake and Bazel installations
         if: matrix.test-type == 'functional'
@@ -127,38 +118,19 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            C:\tools\cmake\3.15.7
-            C:\tools\cmake\3.19.7
-            C:\tools\cmake\3.23.5
-            C:\tools\bazel\6.3.2
-            C:\tools\bazel\7.1.2
-          key: ${{ runner.os }}-conan-tools-cache
+            C:\tools\cmake
+            C:\tools\bazel
+          key: ${{ runner.os }}-conan-tools-cache-v1
 
-      - name: Build CMake old versions of CMake
-        if: matrix.test-type == 'functional' && steps.cache-tools.outputs.cache-hit != 'true'
+      - name: Build CMake versions
+        if: steps.cache-tools.outputs.cache-hit != 'true' && matrix.test-type == 'functional'
         run: |
-          $CMAKE_BUILD_VERSIONS = "3.15.7", "3.19.7"
+          $CMAKE_BUILD_VERSIONS = "3.15.7", "3.19.7", "3.23.5"
           foreach ($version in $CMAKE_BUILD_VERSIONS) {
             Write-Host "Downloading CMake version $version for Windows..."
             $destination = "C:\tools\cmake\$version"
             if (-not (Test-Path $destination)) {
-                New-Item -Path $destination -ItemType Directory
-            }
-            $major_minor_version = ($version -split '\.')[0..1] -join '.'
-            $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-win64-x64.zip"
-            $zipFile = "cmake-$version-windows-x86_64.zip"
-            Invoke-WebRequest -Uri $url -OutFile $zipFile
-            Expand-Archive -Path $zipFile -DestinationPath $destination -Force
-            Remove-Item $zipFile
-          }
-      - name: Install modern CMake versions
-        if: matrix.test-type == 'functional' && steps.cache-tools.outputs.cache-hit != 'true'
-        run: |
-          $CMAKE_BUILD_VERSIONS = "3.23.5"
-          foreach ($version in $CMAKE_BUILD_VERSIONS) {
-            $destination = "C:\tools\cmake\$version"
-            if (-not (Test-Path $destination)) {
-                New-Item -Path $destination -ItemType Directory
+              New-Item -Path $destination -ItemType Directory
             }
             $major_minor_version = ($version -split '\.')[0..1] -join '.'
             $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-windows-x86_64.zip"
@@ -167,43 +139,42 @@ jobs:
             Expand-Archive -Path $zipFile -DestinationPath $destination -Force
             Remove-Item $zipFile
           }
+
       - name: Install Bazel versions
-        if: matrix.test-type == 'functional' && steps.cache-tools.outputs.cache-hit != 'true'
+        if: steps.cache-tools.outputs.cache-hit != 'true' && matrix.test-type == 'functional'
         run: |
           $BAZEL_BUILD_VERSIONS = "6.3.2", "7.1.2"
           foreach ($version in $BAZEL_BUILD_VERSIONS) {
-              Write-Host "Downloading Bazel version $version for Windows..."
-              $destination = "C:\tools\bazel\$version"
-              if (-not (Test-Path $destination)) {
-                  New-Item -Path $destination -ItemType Directory
-              }
-              $major_minor_version = ($version -split '\.')[0..1] -join '.'
-              $url = "https://github.com/bazelbuild/bazel/releases/download/$version/bazel-$version-windows-x86_64.zip"
-              $zipFile = "bazel-$version-windows-x86_64.zip"
-              Invoke-WebRequest -Uri $url -OutFile $zipFile
-              Expand-Archive -Path $zipFile -DestinationPath $destination -Force
-              Remove-Item $zipFile
+            Write-Host "Downloading Bazel version $version for Windows..."
+            $destination = "C:\tools\bazel\$version"
+            if (-not (Test-Path $destination)) {
+              New-Item -Path $destination -ItemType Directory
+            }
+            $url = "https://github.com/bazelbuild/bazel/releases/download/$version/bazel-$version-windows-x86_64.zip"
+            $zipFile = "bazel-$version-windows-x86_64.zip"
+            Invoke-WebRequest -Uri $url -OutFile $zipFile
+            Expand-Archive -Path $zipFile -DestinationPath $destination -Force
+            Remove-Item $zipFile
           }
 
     #   - name: Run Tests
     #     run: |
-    #         $shortGuid = [System.Guid]::NewGuid().ToString().Substring(0, 4)
-    #         $randomFolder = [System.IO.Path]::Combine("D:\\", "tmp_tests", $shortGuid)
-    #         New-Item -ItemType Directory -Force -Path $randomFolder
-    #         $env:CONAN_TEST_FOLDER = $randomFolder
-    #         $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
+    #       $shortGuid = [System.Guid]::NewGuid().ToString().Substring(0, 4)
+    #       $randomFolder = [System.IO.Path]::Combine("D:\\", "tmp_tests", $shortGuid)
+    #       New-Item -ItemType Directory -Force -Path $randomFolder
+    #       $env:CONAN_TEST_FOLDER = $randomFolder
+    #       $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
 
-    #         Set-Location $env:GITHUB_WORKSPACE
-    #         Write-Host "Current folder: $(Get-Location)"
+    #       Set-Location $env:GITHUB_WORKSPACE
+    #       Write-Host "Current folder: $(Get-Location)"
 
-    #         $testPaths = @(
-    #             'test/functional/toolchains/gnu/autotools/test_basic.py::test_autotoolsdeps_cygwin',
-    #             'test/functional/subsystems_build_test.py::TestSubsystems::test_cygwin_available',
-    #             'test/functional/subsystems_build_test.py::TestSubsystemsBuild::test_cygwin[True]',
-    #             'test/functional/subsystems_build_test.py::TestSubsystemsBuild::test_cygwin[False]',
-    #             'test/functional/subsystems_build_test.py::TestSubsystemsAutotoolsBuild::test_cygwin',
-    #             'test/functional/subsystems_build_test.py::TestSubsystemsCMakeBuild::test_cygwin'
-    #         )
+    #       $testPaths = @(
+    #         'test/functional/toolchains/gnu/autotools/test_basic.py::test_autotoolsdeps_cygwin',
+    #         'test/functional/subsystems_build_test.py::TestSubsystems::test_cygwin_available',
+    #         'test/functional/subsystems_build_test.py::TestSubsystemsBuild::test_cygwin[True]',
+    #         'test/functional/subsystems_build_test.py::TestSubsystemsBuild::test_cygwin[False]',
+    #         'test/functional/subsystems_build_test.py::TestSubsystemsAutotoolsBuild::test_cygwin',
+    #         'test/functional/subsystems_build_test.py::TestSubsystemsCMakeBuild::test_cygwin'
+    #       )
 
-    #         pytest @testPaths -vvv --durations=20 --numprocesses=auto
-
+    #       pytest @testPaths -vvv --durations=20 --numprocesses=auto
