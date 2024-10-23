@@ -44,7 +44,7 @@ tools_locations = {
 
 MacOS_arm = all([platform.system() == "Darwin", platform.machine() == "arm64"])
 homebrew_root = "/opt/homebrew" if MacOS_arm else "/usr/local"
-windows_choco_root = "C:/ProgramData/chocolatey/lib/"
+windows_choco_root = "C:/ProgramData/Chocolatey/bin"
 
 tools_locations = {
     "clang": {"disabled": True},
@@ -58,7 +58,7 @@ tools_locations = {
         "0.28": {
             "path": {
                 # Using chocolatey in Windows -> choco install pkgconfiglite --version 0.28
-                'Windows': f"{windows_choco_root}/pkgconfiglite/tools/pkg-config-lite-0.28-1/bin",
+                'Windows': windows_choco_root,
                 'Darwin': f"{homebrew_root}/bin",
                 'Linux': "/usr/bin"
             }
@@ -88,7 +88,7 @@ tools_locations = {
     'ninja': {
         "default": "1.10.2",
         "1.10.2": {
-            "path": {'Windows': f'{windows_choco_root}/ninja/tools'}
+            "path": {'Windows': windows_choco_root}
         }
     },
     # This is the non-msys2 mingw, which is 32 bits x86 arch
@@ -142,7 +142,7 @@ tools_locations = {
         "platform": "Windows",
         "default": "system",
         "exe": "make",
-        "system": {"path": {'Windows': "C:/tools/cygwin/bin"}},
+        "system": {"path": {'Windows': windows_choco_root}},
     },
     'bazel': {
         "default": "6.3.2",
