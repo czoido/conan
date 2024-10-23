@@ -71,9 +71,9 @@ jobs:
           choco install cygwin
           choco install cyg-get
           choco info cygwin
+          dir "C:/tools/cygwin/bin"
+          dir "C:/ProgramData/Chocolatey/bin"
           cyg-get automake gcc-g++ make binutils
-          where cygwin
-          cygwin --version
       
       - name: Install Pacman extra packages
         if: matrix.test-type == 'functional'

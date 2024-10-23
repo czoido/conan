@@ -88,7 +88,7 @@ tools_locations = {
     'ninja': {
         "default": "1.10.2",
         "1.10.2": {
-            "path": {'Windows': windows_choco_root}
+            "path": {'Windows': "C:/tools/cygwin/bin"}
         }
     },
     # This is the non-msys2 mingw, which is 32 bits x86 arch
