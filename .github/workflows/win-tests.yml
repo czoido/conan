@@ -161,9 +161,11 @@ jobs:
               Write-Host "pytest test/integration --durations=20 --numprocesses=auto"
           } elseif ($matrixTestType -eq "functional") {
               $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
-              pytest test/functional/subsystems_build_test.py::TestSubsystemsCMakeBuild::test_cygwin  -vvv
-              pytest test/functional/test_profile_detect_api.py::TestProfileDetectAPI::test_profile_detect_compiler -vvv
-              pytest test/functional/toolchains/test_nmake_toolchain.py::test_toolchain_nmake -vvv
-              pytest test/functional/toolchains/cmake -vvv
-              pytest test/functional/toolchains/microsoft -vvv
+              pytest \
+              test/functional/subsystems_build_test.py::TestSubsystemsCMakeBuild::test_cygwin \
+              test/functional/test_profile_detect_api.py::TestProfileDetectAPI::test_profile_detect_compiler \
+              test/functional/toolchains/test_nmake_toolchain.py \
+              test/functional/toolchains/cmake \
+              test/functional/toolchains/microsoft \
+              -vvv --durations=20 --numprocesses=auto
           }
