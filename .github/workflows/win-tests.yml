@@ -100,7 +100,7 @@ jobs:
             path: C:\ProgramData\chocolatey\cache
             key: choco-cache-${{ runner.os }}-v1
             restore-keys: |
-            choco-cache-${{ runner.os }}-
+              choco-cache-${{ runner.os }}-
 
       - name: Install Chocolatey packages
         if: matrix.test-type == 'functional'
