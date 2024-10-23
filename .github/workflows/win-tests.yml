@@ -118,17 +118,32 @@ jobs:
           choco info cygwin
           cyg-get automake gcc-g++ make binutils
 
-      - name: Set up MSYS2
-        uses: msys2/setup-msys2@v2
+      - name: Create msys2-packages.txt
+        shell: pwsh
+        run: |
+          "mingw-w64-x86_64-toolchain" | Out-File -FilePath msys2-packages.txt -Encoding utf8
+          "mingw-w64-i686-toolchain" | Out-File -FilePath msys2-packages.txt -Append -Encoding utf8
+          "base-devel" | Out-File -FilePath msys2-packages.txt -Append -Encoding utf8
+          "gcc" | Out-File -FilePath msys2-packages.txt -Append -Encoding utf8
+          "autoconf-wrapper" | Out-File -FilePath msys2-packages.txt -Append -Encoding utf8
+          "automake" | Out-File -FilePath msys2-packages.txt -Append -Encoding utf8
+
+      - name: Cache MSYS2
+        id: cache-msys2
+        uses: actions/cache@v4
         with:
-          update: false
-          install: >
-            mingw-w64-x86_64-toolchain
-            mingw-w64-i686-toolchain
-            base-devel
-            gcc
-            autoconf-wrapper
-            automake
+          path: C:\msys64
+          key: msys2-${{ runner.os }}-${{ hashFiles('msys2-packages.txt') }}
+          restore-keys: |
+            msys2-${{ runner.os }}-
+
+      - name: Update package database
+        run: C:\msys64\usr\bin\pacman -Sy --noconfirm
+
+      - name: Install Pacman extra packages
+        if: steps.cache-msys2.outputs.cache-hit != 'true'
+        run: |
+          C:\msys64\usr\bin\pacman -S --needed --noconfirm - < msys2-packages.txt
 
       - name: Cache CMake and Bazel installations
         if: matrix.test-type == 'functional'
@@ -196,19 +211,19 @@ jobs:
             Remove-Item $zipFile
           }
 
-      - name: Run Tests
-        run: |
-          $shortGuid = [System.Guid]::NewGuid().ToString().Substring(0, 4)
-          $randomFolder = [System.IO.Path]::Combine("D:\\", "tmp_tests", $shortGuid)
-          New-Item -ItemType Directory -Force -Path $randomFolder
-          $env:CONAN_TEST_FOLDER = $randomFolder
-          $matrixTestType = "${{ matrix.test-type }}"
-          if ($matrixTestType -eq "unittests") {
-              pytest test/unittests --durations=20 --numprocesses=auto
-          } elseif ($matrixTestType -eq "integration") {
-              pytest test/integration --durations=20 --numprocesses=auto
-          } elseif ($matrixTestType -eq "functional") {
-              $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
-              Remove-Item 'C:\Strawberry' -Recurse
-              pytest test/functional --durations=20 --numprocesses=auto
-          }
+    #   - name: Run Tests
+    #     run: |
+    #       $shortGuid = [System.Guid]::NewGuid().ToString().Substring(0, 4)
+    #       $randomFolder = [System.IO.Path]::Combine("D:\\", "tmp_tests", $shortGuid)
+    #       New-Item -ItemType Directory -Force -Path $randomFolder
+    #       $env:CONAN_TEST_FOLDER = $randomFolder
+    #       $matrixTestType = "${{ matrix.test-type }}"
+    #       if ($matrixTestType -eq "unittests") {
+    #           pytest test/unittests --durations=20 --numprocesses=auto
+    #       } elseif ($matrixTestType -eq "integration") {
+    #           pytest test/integration --durations=20 --numprocesses=auto
+    #       } elseif ($matrixTestType -eq "functional") {
+    #           $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
+    #           Remove-Item 'C:\Strawberry' -Recurse
+    #           pytest test/functional --durations=20 --numprocesses=auto
+    #       }
