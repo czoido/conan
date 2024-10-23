@@ -45,7 +45,7 @@ jobs:
                 'Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core',
                 'Microsoft.VisualStudio.Component.VC.CoreBuildTools'
                 'Microsoft.VisualStudio.Component.Windows81SDK',
-                'Microsoft.Component.MSBuild',
+                'Microsoft.Component.MSBuild'
             )
             $CachePath = 'D:\VS2017Cache'
             $InstallerPath = Join-Path $CachePath 'vs_community.exe'
