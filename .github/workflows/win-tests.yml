@@ -150,6 +150,8 @@ jobs:
               Remove-Item $zipFile
           }
       - name: Run Tests
+        env:
+            CONAN_TEST_FOLDER: ${{ github.workspace }}/tmp_tests
         run: |
           $matrixTestType = "${{ matrix.test-type }}"
           if ($matrixTestType -eq "unittests") {
