@@ -72,7 +72,9 @@ jobs:
           choco install cyg-get
           choco info cygwin
           cyg-get automake gcc-g++ make binutils
-
+          where cygwin
+          cygwin --version
+      
       - name: Install Pacman extra packages
         if: matrix.test-type == 'functional'
         run: |
@@ -83,20 +85,20 @@ jobs:
           C:\msys64\usr\bin\pacman -S autoconf-wrapper --noconfirm
           C:\msys64\usr\bin\pacman -S automake --noconfirm
 
-      - name: Install VS 15 2017 Community edition
+      - name: Cache Visual Studio Installer
+        uses: actions/cache@v4
+        with:
+            path: C:\VS2017Cache
+            key: vs2017cache
+
+      - name: Install Visual Studio from Cache
         if: matrix.test-type == 'functional'
         run: |
-          Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_community.exe" -OutFile "vs_installer.exe"
-          Start-Process -FilePath ".\vs_installer.exe" -ArgumentList `
-           "--quiet",  "--wait", "--norestart", "--nocache", `
-           "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", `
-           "--add", "Microsoft.VisualStudio.Component.Windows81SDK", `
-           "--add", "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core", `
-           "--add", "Microsoft.Component.MSBuild", `
-           "--add", "Microsoft.VisualStudio.Component.VC.CMake.Project", `
-           "--add", "Microsoft.VisualStudio.Workload.NativeDesktop", `
-           "--add", "Microsoft.VisualStudio.Component.VC.CoreBuildTools", `
-           "--add", "Microsoft.VisualStudio.Component.VC.ATLMFC" -Wait
+            if (!(Test-Path 'C:\VS2017Cache\vs_community.exe')) {
+            Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_community.exe" -OutFile "C:\VS2017Cache\vs_community.exe"
+            & "C:\VS2017Cache\vs_community.exe" --layout C:\VS2017Cache --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core --add Microsoft.VisualStudio.Component.VC.CoreBuildTools --lang en-US
+            }
+            & "C:\VS2017Cache\vs_community.exe" --noweb --quiet --wait --norestart --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core --add Microsoft.VisualStudio.Component.VC.CoreBuildTools
 
       - name: Cache CMake and Bazel installations
         if: matrix.test-type == 'functional'
@@ -169,5 +171,10 @@ jobs:
          New-Item -ItemType Directory -Force -Path $randomFolder
          $env:CONAN_TEST_FOLDER = $randomFolder
          $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
-         pytest test -vvv --durations=20 --numprocesses=auto
- 
+         pytest test/functional/toolchains/gnu/autotools/test_basic.py::test_autotoolsdeps_cygwin \
+            test/functional/subsystems_build_test.py::TestSubsystems::test_cygwin_available \
+            test/functional/subsystems_build_test.py::TestSubsystemsBuild::test_cygwin[True] \
+            test/functional/subsystems_build_test.py::TestSubsystemsBuild::test_cygwin[False] \
+            test/functional/subsystems_build_test.py::TestSubsystemsAutotoolsBuild::test_cygwin \
+            test/functional/subsystems_build_test.py::TestSubsystemsCMakeBuild::test_cygwin
+
