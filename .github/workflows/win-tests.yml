@@ -89,16 +89,6 @@ jobs:
           choco install cyg-get
           choco info cygwin
           cyg-get automake gcc-g++ make binutils
-          dir "C:/tools/cygwin/bin"
-          dir "C:/ProgramData/Chocolatey/bin"
-
-          $env:Path += ";C:\tools\cygwin\bin"
-
-          $makePath = (Get-Command make | Select-Object -ExpandProperty Definition)
-          Write-Host "make found in: $makePath"
-
-          Write-Host "results 'where make':"
-          where make
 
       - name: Set up MSYS2
         uses: msys2/setup-msys2@v2
