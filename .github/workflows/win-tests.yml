@@ -5,6 +5,7 @@ on:
     branches:
       - develop2
       - release/*
+      - frm/win_gh_actions-3
   pull_request:
     branches:
       - '*'
