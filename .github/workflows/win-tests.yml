@@ -56,7 +56,7 @@ jobs:
         if: matrix.test-type == 'functional'
         run: |
           choco install pkgconfiglite --version 0.28
-          Get-Command pkgconfiglite
+          Get-Command pkg-config
           choco install ninja --version 1.10.2
           choco install mingw
           choco install cygwin
