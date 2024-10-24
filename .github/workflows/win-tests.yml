@@ -80,6 +80,11 @@ jobs:
                 autoconf-wrapper
                 automake
 
+      - name: Check uname path
+        run: |
+            echo "Checking uname path..."
+            Get-Command uname | Select-Object -ExpandProperty Source
+
       - name: List MSYS2 installation directory contents
         run: |
             $msys2Path = '${{ steps.msys2-setup.outputs.msys2-location }}'
