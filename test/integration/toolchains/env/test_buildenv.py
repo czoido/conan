@@ -16,7 +16,7 @@ def test_crossbuild_windows_incomplete():
             version = "0.1"
             settings = "os", "compiler", "build_type", "arch"
             def build(self):
-                self.run("dir c:")
+                self.run("python --version")
             """)
     build_profile = textwrap.dedent("""
         [settings]
@@ -33,4 +33,4 @@ def test_crossbuild_windows_incomplete():
         """)
     client.save({"conanfile.py": conanfile, "build_profile": build_profile})
     client.run("create . -pr:b=build_profile")
-    assert "<DIR>          ." in client.out
+    assert "Python" in client.out

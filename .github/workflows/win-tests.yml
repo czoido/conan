@@ -168,7 +168,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          $pathsToRemove = @("C:\mingw64\bin", "C:\Strawberry\c\bin", "C:\Program Files\CMake\bin")
+          $pathsToRemove = @("C:\mingw64\bin", "C:\Strawberry\c\bin", "C:\Program Files\CMake\bin", "C:\Program Files\Git\usr\bin")
           foreach ($dir in $pathsToRemove) {
               $newPath = ($env:PATH -split ";") -ne $dir -join ";"
               [System.Environment]::SetEnvironmentVariable('PATH', $newPath)
