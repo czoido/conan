@@ -80,6 +80,12 @@ jobs:
                 autoconf-wrapper
                 automake
 
+      - name: List MSYS2 installation directory contents
+        run: |
+            $msys2Path = '${{ steps.msys2-setup.outputs.msys2-location }}'
+            Write-Host "Listing contents of MSYS2 installation at: $msys2Path"
+            Get-ChildItem -Path $msys2Path
+
       - name: Install VS 15 2017 Community edition
         run: |
             Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_community.exe" -OutFile "vs_community.exe"
