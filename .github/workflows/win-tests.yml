@@ -30,10 +30,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Remove installed CMake version
-        run: |
-            Remove-Item -Recurse -Force "C:/Program Files/CMake"
-
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -160,22 +156,20 @@ jobs:
 
       - name: Run Tests
         run: |
-          $mingw64Dir = "C:\mingw64\bin"
-          $newPath = ($env:PATH -split ";") -ne $mingw64Dir -join ";"
-          [System.Environment]::SetEnvironmentVariable('PATH', $newPath)
-          Write-Host "mingw64 removed from PATH. Current PATH: $env:PATH"
+          $pathsToRemove = @("C:\mingw64\bin", "C:\Strawberry\c\bin", "C:\Program Files\CMake\bin")
+          foreach ($dir in $pathsToRemove) {
+              $newPath = ($env:PATH -split ";") -ne $dir -join ";"
+              [System.Environment]::SetEnvironmentVariable('PATH', $newPath)
+              Write-Host "$dir removed from PATH. Current PATH: $env:PATH"
+          }
 
-          $strawberryDir = "C:\Strawberry\c\bin"
-          $newPath = ($env:PATH -split ";") -ne $strawberryDir -join ";"
-          [System.Environment]::SetEnvironmentVariable('PATH', $newPath)
-          Write-Host "Strawberry removed from PATH. Current PATH: $env:PATH"
-
+          # Comprobación de la existencia de GCC
           $gccPath = Get-Command gcc.exe -ErrorAction SilentlyContinue
           if ($null -ne $gccPath) {
               Write-Host "GCC found in PATH at: $($gccPath.Path)"
           } else {
               Write-Host "GCC not found in PATH."
-          }
+          }     
 
           $shortGuid = [System.Guid]::NewGuid().ToString().Substring(0, 4)
           $randomFolder = [System.IO.Path]::Combine("D:\\", "tmp_tests", $shortGuid)
