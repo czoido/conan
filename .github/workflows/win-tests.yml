@@ -5,6 +5,7 @@ on:
     branches:
       - develop2
       - release/*
+      - windows-action-optimize
   pull_request:
     branches:
       - '*'
@@ -37,14 +38,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Check clock precision in Windows
-        run: |
-          python -c "import time; \
-          clock_info = time.get_clock_info('time'); \
-          print(f'Time clock precision: {clock_info.resolution} seconds'); \
-          perf_info = time.get_clock_info('perf_counter'); \
-          print(f'Perf counter precision: {perf_info.resolution} seconds')"
 
       - name: Cache pip packages
         uses: actions/cache@v4
@@ -79,113 +72,115 @@ jobs:
           choco install cyg-get
           cyg-get automake gcc-g++ make binutils --verbose
 
-      - name: Install Pacman extra packages
-        run: |
-          C:\msys64\usr\bin\pacman -Syuu --noconfirm
-          C:\msys64\usr\bin\pacman -S mingw-w64-x86_64-toolchain --noconfirm
-          C:\msys64\usr\bin\pacman -S mingw-w64-i686-toolchain --noconfirm
-          C:\msys64\usr\bin\pacman -S base-devel gcc --noconfirm
-          C:\msys64\usr\bin\pacman -S autoconf-wrapper --noconfirm
-          C:\msys64\usr\bin\pacman -S automake --noconfirm
-
-      - name: Install VS 15 2017 Community edition
-        run: |
-            Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_community.exe" -OutFile "vs_community.exe"
-            Start-Process -FilePath ".\vs_community.exe" -ArgumentList `
-            "--quiet",  "--wait", "--norestart", "--nocache", `
-            "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", `
-            "--add", "Microsoft.VisualStudio.Component.Windows81SDK", `
-            "--add", "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core", `
-            "--add", "Microsoft.Component.MSBuild", `
-            "--add", "Microsoft.VisualStudio.Component.VC.140", `
-            "--add", "Microsoft.VisualStudio.Component.VC.v141.x86.x64" -Wait
-
-      - name: Cache CMake and Bazel installations
-        id: cache-tools
-        uses: actions/cache@v4
+      - uses: msys2/setup-msys2@v2
         with:
-          path: |
-            C:\tools\cmake\3.15.7
-            C:\tools\cmake\3.19.7
-            C:\tools\cmake\3.23.5
-            C:\tools\bazel\6.3.2
-            C:\tools\bazel\7.1.2
-          key: ${{ runner.os }}-conan-tools-cache
+            update: true
+            install: >-
+                mingw-w64-x86_64-toolchain
+                mingw-w64-i686-toolchain
+                base-devel
+                gcc
+                autoconf-wrapper
+                automake
 
-      - name: Build CMake old versions of CMake
-        if: steps.cache-tools.outputs.cache-hit != 'true'
-        run: |
-          $CMAKE_BUILD_VERSIONS = "3.15.7", "3.19.7"
-          foreach ($version in $CMAKE_BUILD_VERSIONS) {
-            Write-Host "Downloading CMake version $version for Windows..."
-            $destination = "C:\tools\cmake\$version"
-            if (-not (Test-Path $destination)) {
-                New-Item -Path $destination -ItemType Directory
-            }
-            $major_minor_version = ($version -split '\.')[0..1] -join '.'
-            $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-win64-x64.zip"
-            $zipFile = "cmake-$version-windows-x86_64.zip"
-            Invoke-WebRequest -Uri $url -OutFile $zipFile
-            Expand-Archive -Path $zipFile -DestinationPath $destination -Force
-            Remove-Item $zipFile
-          }
-      - name: Install modern CMake versions
-        if: steps.cache-tools.outputs.cache-hit != 'true'
-        run: |
-          $CMAKE_BUILD_VERSIONS = "3.23.5"
-          foreach ($version in $CMAKE_BUILD_VERSIONS) {
-            $destination = "C:\tools\cmake\$version"
-            if (-not (Test-Path $destination)) {
-                New-Item -Path $destination -ItemType Directory
-            }
-            $major_minor_version = ($version -split '\.')[0..1] -join '.'
-            $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-windows-x86_64.zip"
-            $zipFile = "cmake-$version-windows-x86_64.zip"
-            Invoke-WebRequest -Uri $url -OutFile $zipFile
-            Expand-Archive -Path $zipFile -DestinationPath $destination -Force
-            Remove-Item $zipFile
-          }
-      - name: Install Bazel versions
-        if: steps.cache-tools.outputs.cache-hit != 'true'
-        run: |
-          $BAZEL_BUILD_VERSIONS = "6.3.2", "7.1.2"
-          foreach ($version in $BAZEL_BUILD_VERSIONS) {
-              Write-Host "Downloading Bazel version $version for Windows..."
-              $destination = "C:\tools\bazel\$version"
-              if (-not (Test-Path $destination)) {
-                  New-Item -Path $destination -ItemType Directory
-              }
-              $major_minor_version = ($version -split '\.')[0..1] -join '.'
-              $url = "https://github.com/bazelbuild/bazel/releases/download/$version/bazel-$version-windows-x86_64.zip"
-              $zipFile = "bazel-$version-windows-x86_64.zip"
-              Invoke-WebRequest -Uri $url -OutFile $zipFile
-              Expand-Archive -Path $zipFile -DestinationPath $destination -Force
-              Remove-Item $zipFile
-          }
+    #   - name: Install VS 15 2017 Community edition
+    #     run: |
+    #         Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_community.exe" -OutFile "vs_community.exe"
+    #         Start-Process -FilePath ".\vs_community.exe" -ArgumentList `
+    #         "--quiet",  "--wait", "--norestart", "--nocache", `
+    #         "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", `
+    #         "--add", "Microsoft.VisualStudio.Component.Windows81SDK", `
+    #         "--add", "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core", `
+    #         "--add", "Microsoft.Component.MSBuild", `
+    #         "--add", "Microsoft.VisualStudio.Component.VC.140", `
+    #         "--add", "Microsoft.VisualStudio.Component.VC.v141.x86.x64" -Wait
 
-      - name: Run Tests
-        run: |
-          $mingw64Dir = "C:\mingw64\bin"
-          $newPath = ($env:PATH -split ";") -ne $mingw64Dir -join ";"
-          [System.Environment]::SetEnvironmentVariable('PATH', $newPath)
-          Write-Host "mingw64 removed from PATH. Current PATH: $env:PATH"
+    #   - name: Cache CMake and Bazel installations
+    #     id: cache-tools
+    #     uses: actions/cache@v4
+    #     with:
+    #       path: |
+    #         C:\tools\cmake\3.15.7
+    #         C:\tools\cmake\3.19.7
+    #         C:\tools\cmake\3.23.5
+    #         C:\tools\bazel\6.3.2
+    #         C:\tools\bazel\7.1.2
+    #       key: ${{ runner.os }}-conan-tools-cache
 
-          $strawberryDir = "C:\Strawberry\c\bin"
-          $newPath = ($env:PATH -split ";") -ne $strawberryDir -join ";"
-          [System.Environment]::SetEnvironmentVariable('PATH', $newPath)
-          Write-Host "Strawberry removed from PATH. Current PATH: $env:PATH"
+    #   - name: Build CMake old versions of CMake
+    #     if: steps.cache-tools.outputs.cache-hit != 'true'
+    #     run: |
+    #       $CMAKE_BUILD_VERSIONS = "3.15.7", "3.19.7"
+    #       foreach ($version in $CMAKE_BUILD_VERSIONS) {
+    #         Write-Host "Downloading CMake version $version for Windows..."
+    #         $destination = "C:\tools\cmake\$version"
+    #         if (-not (Test-Path $destination)) {
+    #             New-Item -Path $destination -ItemType Directory
+    #         }
+    #         $major_minor_version = ($version -split '\.')[0..1] -join '.'
+    #         $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-win64-x64.zip"
+    #         $zipFile = "cmake-$version-windows-x86_64.zip"
+    #         Invoke-WebRequest -Uri $url -OutFile $zipFile
+    #         Expand-Archive -Path $zipFile -DestinationPath $destination -Force
+    #         Remove-Item $zipFile
+    #       }
+    #   - name: Install modern CMake versions
+    #     if: steps.cache-tools.outputs.cache-hit != 'true'
+    #     run: |
+    #       $CMAKE_BUILD_VERSIONS = "3.23.5"
+    #       foreach ($version in $CMAKE_BUILD_VERSIONS) {
+    #         $destination = "C:\tools\cmake\$version"
+    #         if (-not (Test-Path $destination)) {
+    #             New-Item -Path $destination -ItemType Directory
+    #         }
+    #         $major_minor_version = ($version -split '\.')[0..1] -join '.'
+    #         $url = "https://cmake.org/files/v$major_minor_version/cmake-$version-windows-x86_64.zip"
+    #         $zipFile = "cmake-$version-windows-x86_64.zip"
+    #         Invoke-WebRequest -Uri $url -OutFile $zipFile
+    #         Expand-Archive -Path $zipFile -DestinationPath $destination -Force
+    #         Remove-Item $zipFile
+    #       }
+    #   - name: Install Bazel versions
+    #     if: steps.cache-tools.outputs.cache-hit != 'true'
+    #     run: |
+    #       $BAZEL_BUILD_VERSIONS = "6.3.2", "7.1.2"
+    #       foreach ($version in $BAZEL_BUILD_VERSIONS) {
+    #           Write-Host "Downloading Bazel version $version for Windows..."
+    #           $destination = "C:\tools\bazel\$version"
+    #           if (-not (Test-Path $destination)) {
+    #               New-Item -Path $destination -ItemType Directory
+    #           }
+    #           $major_minor_version = ($version -split '\.')[0..1] -join '.'
+    #           $url = "https://github.com/bazelbuild/bazel/releases/download/$version/bazel-$version-windows-x86_64.zip"
+    #           $zipFile = "bazel-$version-windows-x86_64.zip"
+    #           Invoke-WebRequest -Uri $url -OutFile $zipFile
+    #           Expand-Archive -Path $zipFile -DestinationPath $destination -Force
+    #           Remove-Item $zipFile
+    #       }
 
-          $gccPath = Get-Command gcc.exe -ErrorAction SilentlyContinue
-          if ($null -ne $gccPath) {
-              Write-Host "GCC found in PATH at: $($gccPath.Path)"
-          } else {
-              Write-Host "GCC not found in PATH."
-          }
+    #   - name: Run Tests
+    #     run: |
+    #       $mingw64Dir = "C:\mingw64\bin"
+    #       $newPath = ($env:PATH -split ";") -ne $mingw64Dir -join ";"
+    #       [System.Environment]::SetEnvironmentVariable('PATH', $newPath)
+    #       Write-Host "mingw64 removed from PATH. Current PATH: $env:PATH"
 
-          $shortGuid = [System.Guid]::NewGuid().ToString().Substring(0, 4)
-          $randomFolder = [System.IO.Path]::Combine("D:\\", "tmp_tests", $shortGuid)
-          New-Item -ItemType Directory -Force -Path $randomFolder
-          $env:CONAN_TEST_FOLDER = $randomFolder
-          $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
+    #       $strawberryDir = "C:\Strawberry\c\bin"
+    #       $newPath = ($env:PATH -split ";") -ne $strawberryDir -join ";"
+    #       [System.Environment]::SetEnvironmentVariable('PATH', $newPath)
+    #       Write-Host "Strawberry removed from PATH. Current PATH: $env:PATH"
 
-          pytest test -n=auto --durations=1000
+    #       $gccPath = Get-Command gcc.exe -ErrorAction SilentlyContinue
+    #       if ($null -ne $gccPath) {
+    #           Write-Host "GCC found in PATH at: $($gccPath.Path)"
+    #       } else {
+    #           Write-Host "GCC not found in PATH."
+    #       }
+
+    #       $shortGuid = [System.Guid]::NewGuid().ToString().Substring(0, 4)
+    #       $randomFolder = [System.IO.Path]::Combine("D:\\", "tmp_tests", $shortGuid)
+    #       New-Item -ItemType Directory -Force -Path $randomFolder
+    #       $env:CONAN_TEST_FOLDER = $randomFolder
+    #       $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
+
+    #       pytest test -n=auto --durations=1000
