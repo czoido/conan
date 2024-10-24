@@ -69,6 +69,7 @@ jobs:
           cyg-get automake gcc-g++ make binutils --verbose
 
       - uses: msys2/setup-msys2@v2
+        id: msys2-setup
         with:
             update: true
             install: >-
@@ -78,6 +79,11 @@ jobs:
                 gcc
                 autoconf-wrapper
                 automake
+
+      - name: Print MSYS2 installation directory
+        run: |
+            $msys2Path = '${{ steps.msys2-setup.outputs.msys2-location }}'
+            Write-Host "MSYS2 installed at: $msys2Path"
 
       - name: Install VS 15 2017 Community edition
         run: |
@@ -163,7 +169,7 @@ jobs:
               Write-Host "$dir removed from PATH. Current PATH: $env:PATH"
           }
 
-          # Comprobación de la existencia de GCC
+          # Check GCC is not in Path
           $gccPath = Get-Command gcc.exe -ErrorAction SilentlyContinue
           if ($null -ne $gccPath) {
               Write-Host "GCC found in PATH at: $($gccPath.Path)"
@@ -177,4 +183,4 @@ jobs:
           $env:CONAN_TEST_FOLDER = $randomFolder
           $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
 
-          pytest test -n=auto --durations=1000
+          pytest test/unittests test/integration test/functional -n=auto --durations=1000
