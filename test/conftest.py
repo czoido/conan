@@ -351,3 +351,4 @@ def pytest_runtest_setup(item):
         item.old_environ = dict(os.environ)
         tools_env_vars['PATH'] = os.pathsep.join(tools_paths + [os.environ["PATH"]])
         os.environ.update(tools_env_vars)
+        print("tools_env_vars:", tools_env_vars)
