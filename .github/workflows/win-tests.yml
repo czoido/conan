@@ -89,7 +89,7 @@ jobs:
         run: |
             $msys2Path = '${{ steps.msys2-setup.outputs.msys2-location }}'
             Write-Host "Listing contents of MSYS2 installation at: $msys2Path"
-            Get-ChildItem -Path $msys2Path
+            Get-ChildItem -Path $msys2Path -Recurse
 
       - name: Install VS 15 2017 Community edition
         run: |
