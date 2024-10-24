@@ -80,11 +80,6 @@ jobs:
                 autoconf-wrapper
                 automake
 
-      - name: Print MSYS2 installation directory
-        run: |
-            $msys2Path = '${{ steps.msys2-setup.outputs.msys2-location }}'
-            Write-Host "MSYS2 installed at: $msys2Path"
-
       - name: Install VS 15 2017 Community edition
         run: |
             Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_community.exe" -OutFile "vs_community.exe"
@@ -182,5 +177,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path $randomFolder
           $env:CONAN_TEST_FOLDER = $randomFolder
           $env:Path = "C:\tools\cmake\3.15.7\cmake-3.15.7-win64-x64\bin;" + $env:Path
+
+          $msys2Path = '${{ steps.msys2-setup.outputs.msys2-location }}'
+          [System.Environment]::SetEnvironmentVariable('MSYS2_PATH', $msys2Path, [System.EnvironmentVariableTarget]::Process)
+          Write-Host "Added MSYS2_PATH environment variable: $msys2Path"
 
           pytest test/unittests test/integration test/functional -n=auto --durations=1000
