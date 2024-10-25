@@ -82,8 +82,18 @@ jobs:
 
       - name: Check uname path
         run: |
-            echo "Checking uname path..."
-            Get-Command uname | Select-Object -ExpandProperty Source
+          $pathsToRemove = @("C:\mingw64\bin", "C:\Strawberry\c\bin", "C:\Program Files\CMake\bin", "C:\Program Files\Git\usr\bin")
+          foreach ($dir in $pathsToRemove) {
+              $newPath = ($env:PATH -split ";") -ne $dir -join ";"
+              [System.Environment]::SetEnvironmentVariable('PATH', $newPath)
+              Write-Host "$dir removed from PATH. Current PATH: $env:PATH"
+          }
+          echo "Checking uname path..."
+          Get-Command uname | Select-Object -ExpandProperty Source
+
+          $msys2Path = "${{ steps.msys2-setup.outputs.msys2-location }}\usr\bin"
+          $output = & "$msys2Path\uname"
+          Write-Host "Output of uname: $output"
 
       - name: List MSYS2 installation directory contents
         run: |
