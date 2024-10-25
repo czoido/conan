@@ -83,19 +83,6 @@ jobs:
                 autoconf-wrapper
                 automake
 
-      - name: Check uname path
-        run: |
-          $pathsToRemove = @("C:\mingw64\bin", "C:\Strawberry\c\bin", "C:\Program Files\CMake\bin", "C:\Program Files\Git\usr\bin")
-          foreach ($dir in $pathsToRemove) {
-              $newPath = ($env:PATH -split ";") -ne $dir -join ";"
-              [System.Environment]::SetEnvironmentVariable('PATH', $newPath)
-              Write-Host "$dir removed from PATH. Current PATH: $env:PATH"
-          }
-
-          $msys2Path = "${{ steps.msys2-setup.outputs.msys2-location }}\usr\bin"
-          $output = & "$msys2Path\uname"
-          Write-Host "Output of uname: $output"
-
       - name: Install VS 15 2017 Community edition
         run: |
             Invoke-WebRequest -Uri "https://aka.ms/vs/15/release/vs_community.exe" -OutFile "vs_community.exe"
@@ -173,7 +160,11 @@ jobs:
 
       - name: Run Tests
         run: |
-          $pathsToRemove = @("C:\mingw64\bin", "C:\Strawberry\c\bin", "C:\Program Files\CMake\bin", "C:\Program Files\Git\usr\bin")
+          $pathsToRemove = @()
+          $pathsToRemove += "C:\mingw64\bin"                # To avoid that CMake finds gcc there
+          $pathsToRemove += "C:\Strawberry\c\bin"           
+          $pathsToRemove += "C:\Program Files\CMake\bin"    # Remove the default CMake version
+          $pathsToRemove += "C:\Program Files\Git\usr\bin"  # To avoid using uname and other tools from there
           foreach ($dir in $pathsToRemove) {
               $newPath = ($env:PATH -split ";") -ne $dir -join ";"
               [System.Environment]::SetEnvironmentVariable('PATH', $newPath)
@@ -197,6 +188,5 @@ jobs:
           $msys2Path = '${{ steps.msys2-setup.outputs.msys2-location }}'
           [System.Environment]::SetEnvironmentVariable('MSYS2_PATH', $msys2Path, [System.EnvironmentVariableTarget]::Process)
           Write-Host "Added MSYS2_PATH environment variable: $msys2Path"
-          Write-Host "Current PATH: $env:PATH"
 
-          pytest -k "test_token_expired or test_msys2_available or test_crossbuild_windows_incomplete" -n=auto --durations=1000
+          pytest test/unittests test/integration test/functional -n=auto --durations=1000
