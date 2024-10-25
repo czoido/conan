@@ -72,6 +72,7 @@ jobs:
         id: msys2-setup
         with:
             update: true
+            msystem: MSYS
             install: >-
                 mingw-w64-x86_64-toolchain
                 mingw-w64-i686-toolchain
