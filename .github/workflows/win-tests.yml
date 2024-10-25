@@ -72,6 +72,8 @@ jobs:
         id: msys2-setup
         with:
             update: true
+            # It's important that the default environment that is used is MSYS
+            # we check this default in a test
             msystem: MSYS
             install: >-
                 mingw-w64-x86_64-toolchain
