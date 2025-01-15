@@ -62,6 +62,8 @@ def text_vuln_formatter(data_json):
         return
 
     total_vulns = 0
+    summary_lines = []
+
     for pkg_name, pkg_info in data_json["data"].items():
         version = pkg_info["version"]
         edges = pkg_info.get("vulnerabilities", {}).get("edges", [])
@@ -79,6 +81,8 @@ def text_vuln_formatter(data_json):
             continue
 
         total_vulns += count
+        summary_lines.append(f"{ref} {count} {'vulnerability' if count == 1 else 'vulnerabilities'} found")
+
         cli_out_write(f"{count} {'vulnerability' if count == 1 else 'vulnerabilities'} found:\n", fg=Color.BRIGHT_YELLOW)
 
         sorted_vulns = sorted(edges, key=sort_by_severity)
@@ -111,7 +115,12 @@ def text_vuln_formatter(data_json):
 
     color_for_total = Color.BRIGHT_RED if total_vulns else Color.BRIGHT_GREEN
     cli_out_write(f"Total vulnerabilities found: {total_vulns}\n", fg=color_for_total)
-    cli_out_write("Vulnerability information provided by JFrog Catalog (https://jfrog.com/help/r/jfrog-catalog/jfrog-catalog)\n", 
+
+    cli_out_write("\nSummary:\n", fg=Color.BRIGHT_WHITE)
+    for line in summary_lines:
+        cli_out_write(f"- {line}", fg=Color.BRIGHT_WHITE)
+
+    cli_out_write("\nVulnerability information provided by JFrog Catalog (https://jfrog.com/help/r/jfrog-catalog/jfrog-catalog)\n", 
                   fg=Color.BRIGHT_WHITE)
 
 
