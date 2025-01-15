@@ -30,7 +30,6 @@ def text_vuln_formatter(data_json):
         "Medium": Color.BRIGHT_YELLOW,
         "Low": Color.BRIGHT_CYAN
     }
-
     severity_order = {
         "Critical": 4,
         "High": 3,
@@ -38,24 +37,19 @@ def text_vuln_formatter(data_json):
         "Low": 1
     }
 
-    def sort_by_severity(v):
-        sev = v["node"].get("severity", "Medium")
-        return -severity_order.get(sev, 2)
-
-    def clean_and_truncate(text, limit=120):
-        text = text.replace("\n", " ").strip()
-        return text[:limit] + ("..." if len(text) > limit else "")
-
-    def wrap_and_indent(text, limit=120, indent=4):
+    def wrap_and_indent(txt, limit=80, indent=2):
+        txt = txt.replace("\n", " ").strip()
+        if len(txt) <= limit:
+            return " " * indent + txt
         lines = []
-        while len(text) > limit:
-            split_index = text.rfind(" ", 0, limit)
+        while len(txt) > limit:
+            split_index = txt.rfind(" ", 0, limit)
             if split_index == -1:
                 split_index = limit
-            lines.append(text[:split_index].strip())
-            text = text[split_index:].strip()
-        lines.append(text)
-        return "\n".join(" " * indent + line for line in lines)
+            lines.append(" " * indent + txt[:split_index].strip())
+            txt = txt[split_index:].strip()
+        lines.append(" " * indent + txt)
+        return "\n".join(lines)
 
     if not data_json or "data" not in data_json or not data_json["data"]:
         cli_out_write("No vulnerabilities found.\n", fg=Color.BRIGHT_GREEN)
@@ -65,52 +59,43 @@ def text_vuln_formatter(data_json):
     summary_lines = []
 
     for pkg_name, pkg_info in data_json["data"].items():
-        version = pkg_info["version"]
+        ref = f"{pkg_name}/{pkg_info['version']}"
         edges = pkg_info.get("vulnerabilities", {}).get("edges", [])
-        ref = f"{pkg_name}/{version}"
         count = len(edges)
 
         border_line = "*" * (len(ref) + 4)
-        cli_out_write("")
-        cli_out_write(border_line, fg=Color.BRIGHT_WHITE)
+        cli_out_write("\n" + border_line, fg=Color.BRIGHT_WHITE)
         cli_out_write(f"* {ref} *", fg=Color.BRIGHT_WHITE)
-        cli_out_write(border_line + "\n", fg=Color.BRIGHT_WHITE)
+        cli_out_write(border_line, fg=Color.BRIGHT_WHITE)
 
-        if count == 0:
-            cli_out_write("No vulnerabilities found.\n\n", fg=Color.BRIGHT_GREEN)
+        if not count:
+            cli_out_write("\nNo vulnerabilities found.\n", fg=Color.BRIGHT_GREEN)
             continue
 
         total_vulns += count
         summary_lines.append(f"{ref} {count} {'vulnerability' if count == 1 else 'vulnerabilities'} found")
+        cli_out_write(f"\n{count} {'vulnerability' if count == 1 else 'vulnerabilities'} found:\n", fg=Color.BRIGHT_YELLOW)
 
-        cli_out_write(f"{count} {'vulnerability' if count == 1 else 'vulnerabilities'} found:\n", fg=Color.BRIGHT_YELLOW)
-
-        sorted_vulns = sorted(edges, key=sort_by_severity)
+        sorted_vulns = sorted(edges, key=lambda v: -severity_order.get(v["node"].get("severity", "Medium"), 2))
 
         for vuln in sorted_vulns:
             node = vuln["node"]
-            cve = node["name"]
+            name = node["name"]
             sev = node.get("severity", "Medium")
             sev_color = severity_colors.get(sev, Color.BRIGHT_YELLOW)
-
             score = node.get("cvss", {}).get("preferredBaseScore")
             score_txt = f", CVSS: {score}" if score else ""
+            desc = node.get("description", "")
+            desc = (desc[:240] + "...") if len(desc) > 240 else desc
+            desc_wrapped = wrap_and_indent(desc)
 
-            raw_desc = node["description"]
-            cleaned_desc = clean_and_truncate(raw_desc, limit=240)
-            wrapped_desc = wrap_and_indent(cleaned_desc, limit=80, indent=2)
-
-            references = node.get("references", [])
-            first_ref = references[0] if references else None
-
-            cli_out_write(f"- {cve}", fg=Color.BRIGHT_WHITE, endline="")
+            cli_out_write(f"- {name}", fg=Color.BRIGHT_WHITE, endline="")
             cli_out_write(f" (Severity: {sev}{score_txt})", fg=sev_color)
+            cli_out_write("\n" + desc_wrapped)
 
-            cli_out_write("\n" + wrapped_desc)
-
-            if first_ref:
-                cli_out_write(f"  url: {first_ref}", fg=Color.BRIGHT_BLUE)
-
+            references = node.get("references")
+            if references:
+                cli_out_write(f"  url: {references[0]}", fg=Color.BRIGHT_BLUE)
             cli_out_write("")
 
     color_for_total = Color.BRIGHT_RED if total_vulns else Color.BRIGHT_GREEN
@@ -120,9 +105,10 @@ def text_vuln_formatter(data_json):
     for line in summary_lines:
         cli_out_write(f"- {line}", fg=Color.BRIGHT_WHITE)
 
-    cli_out_write("\nVulnerability information provided by JFrog Catalog (https://jfrog.com/help/r/jfrog-catalog/jfrog-catalog)\n", 
-                  fg=Color.BRIGHT_WHITE)
-
+    cli_out_write(
+        "\nVulnerability information provided by JFrog (https://jfrog.com/help/r/jfrog-catalog/jfrog-catalog)\n",
+        fg=Color.BRIGHT_WHITE
+    )
 
 def json_vuln_formatter(data):
     cli_out_write(json.dumps(data, indent=4))
