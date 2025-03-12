@@ -15,7 +15,7 @@ from conans.util.files import load, save
 VALID_LIB_EXTENSIONS = (".so", ".lib", ".a", ".dylib", ".bc")
 
 
-class MSBuildDeps:
+class MSBuildDeps(object):
     """
     MSBuildDeps class generator
     conandeps.props: unconditional import of all *direct* dependencies only
@@ -167,7 +167,7 @@ class MSBuildDeps:
             # https://docs.microsoft.com/en-us/visualstudio/msbuild/
             #                          how-to-escape-special-characters-in-msbuild
             # https://docs.microsoft.com/en-us/visualstudio/msbuild/msbuild-special-characters
-            return path.lstrip("/")
+            return path.replace("\\", "/").lstrip("/")
 
         def join_paths(paths):
             # TODO: ALmost copied from CMakeDeps TargetDataContext

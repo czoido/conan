@@ -1,6 +1,7 @@
 import pytest
 
 from conan.internal.model.version import Version
+from conan.internal.model.version_range import VersionRange
 
 v = [("1", "2"),
      ("1.0", "1.1"),

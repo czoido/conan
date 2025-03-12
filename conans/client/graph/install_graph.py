@@ -127,15 +127,6 @@ class _InstallRecipeReference:
                 return True
         return False
 
-    def reduce(self):
-        result = _InstallRecipeReference()
-        result.ref = self.ref
-        result._node = self._node
-        result.depends = self.depends
-        result.packages = {pid: pkg for pid, pkg in self.packages.items()
-                           if pkg.binary in (BINARY_BUILD, BINARY_EDITABLE_BUILD)}
-        return result
-
     @property
     def node(self):
         return self._node
@@ -244,9 +235,6 @@ class _InstallConfiguration:
     @property
     def need_build(self):
         return self.binary in (BINARY_BUILD, BINARY_EDITABLE_BUILD)
-
-    def reduce(self):
-        return self
 
     @property
     def pref(self):
@@ -448,7 +436,7 @@ class InstallGraph:
         result = {}
         for k, node in self._nodes.items():
             if node.need_build:
-                result[k] = node.reduce()
+                result[k] = node
             else:  # Eliminate this element from the graph
                 dependencies = node.depends
                 # Find all consumers
