@@ -56,23 +56,20 @@ def environment_wrap_command(conanfile, env_filenames, env_folder, cmd, subsyste
     powershell = "powershell.exe" if powershell is True else powershell
 
     if bats:
-        launchers = " && ".join('"{}"'.format(b) for b in bats)
-        if ps1s:
-            ps1_launchers = f'{powershell} -Command "' + " ; ".join('&\'{}\''.format(f) for f in ps1s) + '"'
-            cmd = cmd.replace('"', r'\"')
-            return '{} && {} ; cmd /c "{}"'.format(launchers, ps1_launchers, cmd)
-        else:
-            return '{} && {}'.format(launchers, cmd)
+        launchers = " && ".join(f'"{b}"' for b in bats)
+        return f'{launchers} && {cmd}'
     elif shs:
-        launchers = " && ".join('. "{}"'.format(f) for f in shs)
-        return '{} && {}'.format(launchers, cmd)
+        launchers = " && ".join(f'. "{f}"' for f in shs)
+        return f'{launchers} && {cmd}'
     elif ps1s:
-        ps1_launchers = f'{powershell} -Command "' + " ; ".join('&\'{}\''.format(f) for f in ps1s) + '"'
-        cmd = cmd.replace('"', r'\"')
-        return '{} ; cmd /c "{}"'.format(ps1_launchers, cmd)
+        powershell_exe = conanfile.conf.get("tools.env.virtualenv:powershell",
+                                            default="powershell.exe")
+        ps1_activators = " ; ".join(f"& '{f}'" for f in ps1s)
+        escaped_cmd = cmd.replace('"', '`"')
+        script_block = f"{ps1_activators} ; {escaped_cmd}"
+        return f'{powershell_exe} -Command "{script_block}"'
     else:
         return cmd
-
 
 class _EnvValue:
     def __init__(self, name, value=None, separator=" ", path=False):

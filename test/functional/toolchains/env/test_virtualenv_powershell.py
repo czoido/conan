@@ -251,3 +251,19 @@ def test_powershell_quoting(powershell):
     client.save({"conanfile.py": conanfile})
     client.run(f'create . -c tools.env.virtualenv:powershell={powershell}')
     assert "Hello World" in client.out
+
+
+@pytest.mark.skipif(platform.system() != "Windows",
+                    reason="Requires MSBuild and Visual Studio generator")
+@pytest.mark.parametrize("powershell", ["powershell.exe", "pwsh"])
+def test_msbuild_verbosity_with_powershell(powershell):
+    client = TestClient()
+    client.save({"conanfile.py": GenConanfile("pkg", "1.0").with_cmake_build()})
+
+    command = (f'create . -c "tools.build:verbosity=verbose" '
+               f'-c "tools.env.virtualenv:powershell={powershell}"')
+
+    client.run(command)
+
+    assert "Build succeeded." in client.out
+    assert "ERROR" not in client.out
