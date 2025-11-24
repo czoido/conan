@@ -81,6 +81,8 @@ class RemoteManager:
                                      f"no conanmanifest.txt")
             pkg_list = PackagesList()
             pkg_list.add_ref(ref)
+            # aqui verifica archivos en vez de pkg_list
+            # no pases el contexto, funcion dummy que verifica firmas
             self._signer.verify(pkg_list, "install")
         except BaseException:  # So KeyboardInterrupt also cleans things
             ConanOutput(scope=str(ref)).error(f"Error downloading from remote '{remote.name}'",

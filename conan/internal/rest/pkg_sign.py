@@ -146,16 +146,17 @@ class PkgSignaturesPlugin:
             except AttributeError:
                 pass
 
-    def sign(self, pkg_list, context="upload"):  # cache, upload,
-        if not self._plugin_file_exists:
-            if context == "upload":
-                return
-            raise ConanException(f"[Package sign] Plugin not configured at {self.sign_plugin_path}")
-        if self._plugin_sign_function is None:
-            raise ConanException("[Package sign] sign() function not found "
-                                 f"in {self.sign_plugin_path}")
+    @property
+    def has_sign_plugin(self):
+        return self._plugin_sign_function is not None
 
-        def _sign(ref, files, folder, dict_info, context="upload"):
+    @property
+    def has_verify_plugin(self):
+        return self._plugin_verify_function is not None
+
+    def sign(self, pkg_list):  # cache, upload,
+
+        def _sign(ref, files, folder, dict_info):
             metadata_sign = os.path.join(folder, METADATA, "sign")
             mkdir(metadata_sign)
             try:
@@ -166,14 +167,14 @@ class PkgSignaturesPlugin:
                 # Add files to the pkglist/bundle
                 for f in os.listdir(metadata_sign):
                     files[f"{METADATA}/sign/{f}"] = os.path.join(metadata_sign, f)
-            except (ConanException, AssertionError) as e:
-                _handle_failure(e, context, dict_info)
+            except Exception as e:
+                # SIGN: o bien lanzarla o bien guardarla en el pkglist
+                raise ConanException(f"[Package sign] {str(e)}") from e
 
         for rref, packages in pkg_list.items():
             recipe_bundle = pkg_list.recipe_dict(rref)
             if recipe_bundle:
-                _sign(rref, recipe_bundle.get("files", {}),
-                      self._cache.recipe_layout(rref).download_export(), recipe_bundle, context)
+                _sign(rref, recipe_bundle.get("files", {}), self._cache.recipe_layout(rref).download_export(), recipe_bundle, context)
             for pref in packages:
                 pkg_bundle = pkg_list.package_dict(pref)
                 if pkg_bundle:
@@ -187,10 +188,12 @@ class PkgSignaturesPlugin:
             result = self._plugin_verify_function(ref, artifacts_folder=folder,
                                                   signature_folder=metadata_sign, files=files)
             dict_info["package sign"] = result if result is not None else "Verified"
-        except (ConanException, AssertionError) as e:
-            _handle_failure(e, context, dict_info)
+        except Exception as e:
+            # SIGN: o bien lanzarla o bien guardarla en el pkglist
+            raise ConanException(f"[Package sign] {str(e)}") from e
 
-    def verify(self, pkg_list, context="cache"):  # cache, install, upload
+    def verify(self, pkg_list, context="cache"):
+        # SIGN: no verifiques de donde viene o si existe esto aqui, hazlo antes en el comando
         if not self._plugin_file_exists:
             if context == "install":
                 return
@@ -209,11 +212,3 @@ class PkgSignaturesPlugin:
                 if pkg_bundle:
                     pref_folder = self._cache.pkg_layout(pref).download_package()
                     self._verify(pref, pref_folder, os.listdir(pref_folder), pkg_bundle, context)
-
-
-def _handle_failure(exception, context, dict_info):
-    exception_msg = str(exception)
-    error_msg = f"Failed: {exception_msg}"
-    dict_info["package sign"] = error_msg
-    if context in ["upload", "install"]:
-        raise ConanException(f"[Package sign] {error_msg}")

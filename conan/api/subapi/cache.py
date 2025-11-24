@@ -82,17 +82,21 @@ class CacheAPI:
         """Sign packages with the signing plugin"""
         cache = PkgCache(self._conan_api.cache_folder, self._api_helpers.global_conf)
         pkg_signer = PkgSignaturesPlugin(cache, self._conan_api.home_folder)
-        app = ConanApp(self._conan_api)
-        preparator = PackagePreparator(app, self._api_helpers.global_conf)
-        preparator.prepare(package_list, [], force=True)
-        pkg_signer.sign(package_list, context="cache")
+        # SIGN: desiste aqui de hacer nada, no pases el contexto
+        if pkg_signer.has_sign_plugin():
+            app = ConanApp(self._conan_api)
+            preparator = PackagePreparator(app, self._api_helpers.global_conf)
+            preparator.prepare(package_list, [], force=True)
+            pkg_signer.sign(package_list, context="cache")
         return {"results": package_list.serialize(), "context": "cache", "action": "sign"}
 
     def verify(self, package_list):
         """Verify packages with the signing plugin"""
         cache = PkgCache(self._conan_api.cache_folder, self._api_helpers.global_conf)
         pkg_signer = PkgSignaturesPlugin(cache, self._conan_api.home_folder)
-        pkg_signer.verify(package_list, context="cache")
+        # SIGN: desiste aqui de hacer nada, no pases el contexto
+        if pkg_signer.has_sign_plugin():
+            pkg_signer.verify(package_list, context="cache")
         return {"results": package_list.serialize(), "context": "cache", "action": "verify"}
 
     def clean(self, package_list, source=True, build=True, download=True, temp=True,
