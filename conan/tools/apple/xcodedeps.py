@@ -1,10 +1,11 @@
 import os
 import re
 import textwrap
-from collections import OrderedDict
+from collections import OrderedDict, deque
 
 from jinja2 import Template
 
+from conan.api.output import ConanOutput
 from conan.internal import check_duplicated_generator
 from conan.errors import ConanException
 from conan.internal.model.dependencies import get_transitive_requires
@@ -46,49 +47,60 @@ def _xcconfig_conditional(settings, configuration):
     return "[config={}][arch={}][sdk={}]".format(configuration, architecture, sdk_condition)
 
 
-def _resolve_transitive_external_cpp_infos(transitive_external, deps_by_name):
+def _resolve_transitive_external_cpp_infos(transitive_external, all_deps_by_name):
     """Resolve external component references (pkg, comp) to their CppInfo objects,
     recursively following dependencies across packages so each component's props
     file becomes self-contained (no inter-package #include needed)."""
     result = []
     visited = set()
-    queue = list(transitive_external)
+    pending = deque(transitive_external)
+    output = ConanOutput(scope="XcodeDeps")
 
-    while queue:
-        pkg_name, comp_name = queue.pop(0)
+    while pending:
+        pkg_name, comp_name = pending.popleft()
         if (pkg_name, comp_name) in visited:
             continue
         visited.add((pkg_name, comp_name))
 
-        ext_dep = deps_by_name.get(pkg_name) or deps_by_name.get(_format_name(pkg_name))
+        ext_dep = all_deps_by_name.get(pkg_name) or all_deps_by_name.get(_format_name(pkg_name))
         if ext_dep is None:
+            output.warning(f"XcodeDeps: required dependency '{pkg_name}' not found in graph, "
+                           f"skipping. Ensure it is listed in [requires]")
             continue
 
         if not ext_dep.cpp_info.has_components:
             result.append(ext_dep.cpp_info)
             for req in ext_dep.cpp_info.requires:
                 if "::" in req:
-                    queue.append(tuple(req.split("::", 1)))
+                    pending.append(tuple(req.split("::", 1)))
             continue
 
-        # pkg::pkg means all components of the package
+        # pkg::pkg means all components — reuse aggregated_components()
         if pkg_name == comp_name or _format_name(pkg_name) == _format_name(comp_name):
-            for cn, ci in ext_dep.cpp_info.get_sorted_components().items():
-                if (pkg_name, cn) not in visited:
-                    queue.append((pkg_name, cn))
+            aggregated = ext_dep.cpp_info.aggregated_components()
+            result.append(aggregated)
+            for cn in ext_dep.cpp_info.components:
+                visited.add((pkg_name, cn))
+            for req in aggregated.requires:
+                if "::" in req:
+                    pending.append(tuple(req.split("::", 1)))
             continue
 
-        ci = ext_dep.cpp_info.components.get(comp_name)
+        ci = (ext_dep.cpp_info.components.get(comp_name)
+              or ext_dep.cpp_info.components.get(_format_name(comp_name)))
         if ci is None:
+            output.warning(f"XcodeDeps: component '{comp_name}' not found in "
+                           f"'{pkg_name}', skipping. Available: "
+                           f"{list(ext_dep.cpp_info.components.keys())}")
             continue
 
         result.append(ci)
         for req in ci.requires:
             if "::" in req:
-                queue.append(tuple(req.split("::", 1)))
+                pending.append(tuple(req.split("::", 1)))
             else:
                 if (pkg_name, req) not in visited:
-                    queue.append((pkg_name, req))
+                    pending.append((pkg_name, req))
 
     return result
 
@@ -373,11 +385,9 @@ class XcodeDeps:
                     for r, d in dep.dependencies.direct_host.items():
                         if r not in transitive_requires:
                             continue
-                        if d.cpp_info.has_components:
-                            for cn in d.cpp_info.get_sorted_components():
-                                external_entries.append((d.ref.name, cn))
-                        else:
-                            external_entries.append((d.ref.name, d.ref.name))
+                        # (name, name) triggers aggregated_components() in BFS for
+                        # packages with components, and works directly for those without
+                        external_entries.append((d.ref.name, d.ref.name))
 
                 external_cpp_infos = _resolve_transitive_external_cpp_infos(
                     external_entries, all_deps_by_name)

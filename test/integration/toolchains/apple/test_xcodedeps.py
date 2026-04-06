@@ -651,3 +651,278 @@ def test_dont_add_skipped_xcconfigs_when_required_by_components():
     # Verify that header_transitive xcconfig files ARE generated (transitive dependency)
     transitive_files = [f for f in os.listdir(client.current_folder) if 'header_transitive' in f and f.endswith('.xcconfig')]
     assert len(transitive_files) > 0, f"Header transitive files should be generated: {transitive_files}"
+
+
+def test_xcodedeps_diamond_with_components():
+    """Diamond dependency graph with components:
+        consumer -> lib_a -> lib_common (components: core, utils)
+        consumer -> lib_b -> lib_common (components: core, utils)
+    Verifies deduplication of inlined CppInfo from shared transitive deps.
+    """
+    client = TestClient()
+
+    lib_common = textwrap.dedent("""
+        from conan import ConanFile
+        class LibCommon(ConanFile):
+            name = "lib_common"
+            version = "1.0"
+            settings = "os", "compiler", "build_type", "arch"
+            def package_info(self):
+                self.cpp_info.components["core"].includedirs = ["include_core"]
+                self.cpp_info.components["core"].libs = ["common_core"]
+                self.cpp_info.components["utils"].includedirs = ["include_utils"]
+                self.cpp_info.components["utils"].libs = ["common_utils"]
+                self.cpp_info.components["utils"].requires = ["core"]
+        """)
+
+    lib_a = textwrap.dedent("""
+        from conan import ConanFile
+        class LibA(ConanFile):
+            name = "lib_a"
+            version = "1.0"
+            settings = "os", "compiler", "build_type", "arch"
+            requires = "lib_common/1.0"
+            def package_info(self):
+                self.cpp_info.libs = ["lib_a"]
+                self.cpp_info.requires = ["lib_common::utils"]
+        """)
+
+    lib_b = textwrap.dedent("""
+        from conan import ConanFile
+        class LibB(ConanFile):
+            name = "lib_b"
+            version = "1.0"
+            settings = "os", "compiler", "build_type", "arch"
+            requires = "lib_common/1.0"
+            def package_info(self):
+                self.cpp_info.libs = ["lib_b"]
+                self.cpp_info.requires = ["lib_common::core"]
+        """)
+
+    consumer = GenConanfile().with_requires("lib_a/1.0", "lib_b/1.0") \
+                             .with_settings("os", "arch", "build_type", "compiler")
+
+    client.save({"lib_common/conanfile.py": lib_common,
+                 "lib_a/conanfile.py": lib_a,
+                 "lib_b/conanfile.py": lib_b,
+                 "conanfile.py": consumer})
+
+    client.run("create lib_common")
+    client.run("create lib_a")
+    client.run("create lib_b")
+    client.run("install . -g XcodeDeps")
+
+    arch_setting = client.get_default_host_profile().settings['arch']
+    arch = "arm64" if arch_setting == "armv8" else arch_setting
+
+    # lib_a requires lib_common::utils (which requires core) - both inlined
+    lib_a_vars = client.load(f"conan_lib_a_lib_a_release_{arch}.xcconfig")
+    assert "-llib_a" in lib_a_vars
+    assert "-lcommon_utils" in lib_a_vars
+    assert "-lcommon_core" in lib_a_vars
+    assert "include_utils" in lib_a_vars
+    assert "include_core" in lib_a_vars
+
+    # lib_b requires only lib_common::core - only core inlined, not utils
+    lib_b_vars = client.load(f"conan_lib_b_lib_b_release_{arch}.xcconfig")
+    assert "-llib_b" in lib_b_vars
+    assert "-lcommon_core" in lib_b_vars
+    assert "include_core" in lib_b_vars
+    assert "-lcommon_utils" not in lib_b_vars
+    assert "include_utils" not in lib_b_vars
+
+    # No external #includes in wrappers
+    lib_a_wrapper = client.load("conan_lib_a_lib_a.xcconfig")
+    assert '#include "conan_lib_common' not in lib_a_wrapper
+    lib_b_wrapper = client.load("conan_lib_b_lib_b.xcconfig")
+    assert '#include "conan_lib_common' not in lib_b_wrapper
+
+
+def test_xcodedeps_special_chars_in_names():
+    """Packages and components with special characters (-, +, .) in names.
+    Verifies normalization works consistently for both lookup and generation.
+    """
+    client = TestClient()
+
+    base_pkg = textwrap.dedent("""
+        from conan import ConanFile
+        class BasePkg(ConanFile):
+            name = "my-base.lib"
+            version = "1.0"
+            settings = "os", "compiler", "build_type", "arch"
+            def package_info(self):
+                self.cpp_info.components["core-impl++"].includedirs = ["include_core"]
+                self.cpp_info.components["core-impl++"].libs = ["base_core"]
+                self.cpp_info.components["net.utils"].includedirs = ["include_net"]
+                self.cpp_info.components["net.utils"].libs = ["base_net"]
+                self.cpp_info.components["net.utils"].requires = ["core-impl++"]
+        """)
+
+    consumer_pkg = textwrap.dedent("""
+        from conan import ConanFile
+        class ConsumerPkg(ConanFile):
+            name = "app-client"
+            version = "1.0"
+            settings = "os", "compiler", "build_type", "arch"
+            requires = "my-base.lib/1.0"
+            def package_info(self):
+                self.cpp_info.libs = ["app_client"]
+                self.cpp_info.requires = ["my-base.lib::net.utils"]
+        """)
+
+    consumer = GenConanfile().with_requires("app-client/1.0") \
+                             .with_settings("os", "arch", "build_type", "compiler")
+
+    client.save({"base/conanfile.py": base_pkg,
+                 "consumer_pkg/conanfile.py": consumer_pkg,
+                 "conanfile.py": consumer})
+
+    client.run("create base")
+    client.run("create consumer_pkg")
+    client.run("install . -g XcodeDeps")
+
+    arch_setting = client.get_default_host_profile().settings['arch']
+    arch = "arm64" if arch_setting == "armv8" else arch_setting
+
+    # Verify the normalized files exist and contain the right data
+    app_vars = client.load(f"conan_app_client_app_client_release_{arch}.xcconfig")
+    assert "-lapp_client" in app_vars
+    assert "-lbase_net" in app_vars
+    assert "-lbase_core" in app_vars
+    assert "include_net" in app_vars
+    assert "include_core" in app_vars
+
+    # No external includes in wrapper
+    app_wrapper = client.load("conan_app_client_app_client.xcconfig")
+    assert '#include "conan_my_base_lib' not in app_wrapper
+
+
+def test_xcodedeps_mixed_components_no_components_chain():
+    """Chain mixing packages with and without components:
+        consumer -> pkg_with_comps (components: a, b) -> pkg_no_comps -> pkg_leaf (components: x, y)
+    Verifies resolution works across mixed package types at different depths.
+    """
+    client = TestClient()
+
+    pkg_leaf = textwrap.dedent("""
+        from conan import ConanFile
+        class PkgLeaf(ConanFile):
+            name = "pkg_leaf"
+            version = "1.0"
+            settings = "os", "compiler", "build_type", "arch"
+            def package_info(self):
+                self.cpp_info.components["x"].libs = ["leaf_x"]
+                self.cpp_info.components["x"].includedirs = ["include_x"]
+                self.cpp_info.components["y"].libs = ["leaf_y"]
+                self.cpp_info.components["y"].includedirs = ["include_y"]
+        """)
+
+    pkg_no_comps = textwrap.dedent("""
+        from conan import ConanFile
+        class PkgNoComps(ConanFile):
+            name = "pkg_no_comps"
+            version = "1.0"
+            settings = "os", "compiler", "build_type", "arch"
+            requires = "pkg_leaf/1.0"
+            def package_info(self):
+                self.cpp_info.libs = ["no_comps"]
+                self.cpp_info.requires = ["pkg_leaf::x"]
+        """)
+
+    pkg_with_comps = textwrap.dedent("""
+        from conan import ConanFile
+        class PkgWithComps(ConanFile):
+            name = "pkg_with_comps"
+            version = "1.0"
+            settings = "os", "compiler", "build_type", "arch"
+            requires = "pkg_no_comps/1.0"
+            def package_info(self):
+                self.cpp_info.components["a"].libs = ["comp_a"]
+                self.cpp_info.components["a"].requires = ["pkg_no_comps::pkg_no_comps"]
+                self.cpp_info.components["b"].libs = ["comp_b"]
+        """)
+
+    consumer = GenConanfile().with_requires("pkg_with_comps/1.0") \
+                             .with_settings("os", "arch", "build_type", "compiler")
+
+    client.save({"pkg_leaf/conanfile.py": pkg_leaf,
+                 "pkg_no_comps/conanfile.py": pkg_no_comps,
+                 "pkg_with_comps/conanfile.py": pkg_with_comps,
+                 "conanfile.py": consumer})
+
+    client.run("create pkg_leaf")
+    client.run("create pkg_no_comps")
+    client.run("create pkg_with_comps")
+    client.run("install . -g XcodeDeps")
+
+    arch_setting = client.get_default_host_profile().settings['arch']
+    arch = "arm64" if arch_setting == "armv8" else arch_setting
+
+    # Component "a" requires pkg_no_comps which requires pkg_leaf::x
+    # All three levels should be inlined
+    comp_a_vars = client.load(f"conan_pkg_with_comps_a_release_{arch}.xcconfig")
+    assert "-lcomp_a" in comp_a_vars
+    assert "-lno_comps" in comp_a_vars
+    assert "-lleaf_x" in comp_a_vars
+    assert "-lleaf_y" not in comp_a_vars
+
+    # Component "b" has no external deps
+    comp_b_vars = client.load(f"conan_pkg_with_comps_b_release_{arch}.xcconfig")
+    assert "-lcomp_b" in comp_b_vars
+    assert "-lno_comps" not in comp_b_vars
+    assert "-lleaf_x" not in comp_b_vars
+
+    # No external includes in wrappers
+    comp_a_wrapper = client.load("conan_pkg_with_comps_a.xcconfig")
+    assert '#include "conan_pkg_no_comps' not in comp_a_wrapper
+    assert '#include "conan_pkg_leaf' not in comp_a_wrapper
+
+
+def test_xcodedeps_include_depth_is_constant():
+    """Verify the include chain depth is constant (max 3: umbrella -> wrapper -> props)
+    regardless of the number of transitive dependencies.
+    """
+    client = TestClient()
+
+    # Create a chain: dep_0 -> dep_1 -> dep_2 -> dep_3
+    for i in range(4):
+        req = f'requires = "dep_{i-1}/1.0"' if i > 0 else ""
+        dep_req = f'self.cpp_info.requires = ["dep_{i-1}::dep_{i-1}"]' if i > 0 else ""
+        conanfile = textwrap.dedent(f"""
+            from conan import ConanFile
+            class Dep{i}(ConanFile):
+                name = "dep_{i}"
+                version = "1.0"
+                settings = "os", "compiler", "build_type", "arch"
+                {req}
+                def package_info(self):
+                    self.cpp_info.libs = ["dep_{i}"]
+                    {dep_req}
+            """)
+        client.save({f"dep_{i}/conanfile.py": conanfile})
+        client.run(f"create dep_{i}")
+
+    consumer = GenConanfile().with_requires("dep_3/1.0") \
+                             .with_settings("os", "arch", "build_type", "compiler")
+    client.save({"conanfile.py": consumer})
+    client.run("install . -g XcodeDeps")
+
+    # Verify wrapper has exactly 1 include (its own props file) and no external includes
+    dep3_wrapper = client.load("conan_dep_3_dep_3.xcconfig")
+    includes = [line.strip() for line in dep3_wrapper.splitlines() if line.strip().startswith('#include')]
+    assert len(includes) == 1, f"Wrapper should have exactly 1 #include (props), got: {includes}"
+    assert "dep_3_dep_3_release_" in includes[0]
+
+    # Umbrella includes only its own component wrapper
+    dep3_umbrella = client.load("conan_dep_3.xcconfig")
+    umbrella_includes = [l.strip() for l in dep3_umbrella.splitlines() if l.strip().startswith('#include')]
+    assert len(umbrella_includes) == 1
+    assert "conan_dep_3_dep_3.xcconfig" in umbrella_includes[0]
+
+    arch_setting = client.get_default_host_profile().settings['arch']
+    arch = "arm64" if arch_setting == "armv8" else arch_setting
+
+    # Verify all transitive libs are inlined in the props file
+    dep3_vars = client.load(f"conan_dep_3_dep_3_release_{arch}.xcconfig")
+    for i in range(4):
+        assert f"-ldep_{i}" in dep3_vars, f"dep_{i} lib should be inlined in dep_3 props"
