@@ -172,7 +172,10 @@ def _process_download(config, cache_folder, requester):
             downloader = FileDownloader(requester=requester, source_credentials=True)
             downloader.download(url=config.uri, file_path=zippath, verify_ssl=config.verify_ssl,
                                 retry=1)
-            _process_zip_file(config, zippath, cache_folder, tmp_folder, first_remove=True)
+            if _is_compressed_file(zippath):
+                _process_zip_file(config, zippath, cache_folder, tmp_folder, first_remove=True)
+            else:
+                _process_file(tmp_folder, filename, config, cache_folder, tmp_folder)
         except Exception as e:
             raise ConanException("Error while installing config from %s\n%s" % (config.uri, str(e)))
 

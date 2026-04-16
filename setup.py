@@ -126,6 +126,7 @@ setup(
     # have to be included in MANIFEST.in as well.
     package_data={
         'conans': ['*.txt'],
+        'conan': ['internal/settings.yml'],
     },
 
     # Although 'package_data' is the preferred approach, in some case you may

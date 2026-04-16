@@ -281,6 +281,18 @@ class TestConfigInstall:
             c.run("config install http://myfakeurl.com/myconf.tar.gz")
             self._check(c)
 
+    def test_install_url_single_file(self):
+        """ should install a single file (e.g. settings.yml) from a URL without zip/archive """
+        c = TestClient(light=True)
+
+        def my_download(obj, url, file_path, **kwargs):
+            save(file_path, settings_yml)
+
+        with patch.object(FileDownloader, 'download', new=my_download):
+            c.run("config install http://myfakeurl.com/settings.yml")
+            assert "Installing settings.yml" in c.out
+            assert load(c.paths.settings_path).splitlines() == settings_yml.splitlines()
+
     def test_failed_install_repo(self):
         """ should install from a git repo
         """
