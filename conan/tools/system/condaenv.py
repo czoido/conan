@@ -26,9 +26,8 @@ class CondaEnv:
         self._conanfile = conanfile
         self._channels = list(channels) if channels else ["conda-forge"]
 
-        generators_folder = (conanfile.generators_folder or conanfile.build_folder
-                             or os.getcwd())
-        self._env_dir = os.path.abspath(os.path.join(generators_folder, "condaenv"))
+        self._env_dir = os.path.abspath(os.path.join(conanfile.generators_folder,
+                                                     "condaenv"))
 
         self._micromamba = None
 
