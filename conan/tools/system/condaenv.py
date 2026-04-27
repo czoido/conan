@@ -37,18 +37,6 @@ class CondaEnv:
         """Absolute path to the conda environment prefix."""
         return self._env_dir.replace("\\", "/")
 
-    def _micromamba_cache_dir(self):
-        return self._conanfile.conf.get(
-            "tools.system.condaenv:root_prefix",
-            default=os.path.join(get_conan_user_home(), "condaenv"))
-
-    def _base_cmd(self):
-        # micromamba needs MAMBA_ROOT_PREFIX to know where to store its package cache
-        root_prefix = self._micromamba_cache_dir()
-        if os.name == "nt":
-            return f'set "MAMBA_ROOT_PREFIX={root_prefix}" && '
-        return f'MAMBA_ROOT_PREFIX="{root_prefix}" '
-
     def _resolve_micromamba(self):
         if self._micromamba is not None:
             return self._micromamba
@@ -64,9 +52,7 @@ class CondaEnv:
         else:
             raise ConanException(
                 "CondaEnv: 'micromamba' not found. Install it system-wide "
-                "(e.g. `brew install micromamba`, or follow "
-                "https://mamba.readthedocs.io/en/latest/installation/"
-                "micromamba-installation.html), or configure "
+                " or point to your current instalation defining: "
                 "'tools.system.condaenv:micromamba_path'.")
         return self._micromamba
 
@@ -81,7 +67,7 @@ class CondaEnv:
             "--yes", "--no-rc", "--no-env",
             "--strict-channel-priority",
         ] + channel_args + [f'"{p}"' for p in packages]
-        self._conanfile.run(self._base_cmd() + " ".join(cmd))
+        self._conanfile.run(" ".join(cmd))
 
     def install(self, *packages):
         """
@@ -96,16 +82,14 @@ class CondaEnv:
         self._run_micromamba(subcommand, packages)
 
     def _ensure_conda_pack(self):
-        """Bootstrap conda-pack into a shared tools env under the root prefix."""
-        tool_env = os.path.join(self._micromamba_cache_dir(), "tools", "conda-pack")
-        exe = (os.path.join(tool_env, "Scripts", "conda-pack.exe") if os.name == "nt"
-               else os.path.join(tool_env, "bin", "conda-pack"))
-        if not os.path.isfile(exe):
+        """Bootstrap conda-pack into a shared tools env under the Conan home."""
+        tool_env = os.path.join(get_conan_user_home(), "condaenv", "tools", "conda-pack")
+        if not os.path.isdir(os.path.join(tool_env, "conda-meta")):
             micromamba = self._resolve_micromamba()
-            cmd = (f'"{micromamba}" create -p "{tool_env}" --yes --no-rc --no-env '
-                   f'--strict-channel-priority -c conda-forge "conda-pack"')
-            self._conanfile.run(self._base_cmd() + cmd)
-        return exe
+            self._conanfile.run(
+                f'"{micromamba}" create -p "{tool_env}" --yes --no-rc --no-env '
+                f'--strict-channel-priority -c conda-forge "conda-pack"')
+        return tool_env
 
     def pack(self, dest=None):
         """
@@ -130,15 +114,12 @@ class CondaEnv:
         dest = os.path.abspath(dest)
         os.makedirs(os.path.dirname(dest), exist_ok=True)
 
-        conda_pack = self._ensure_conda_pack()
-        cmd = [
-            f'"{conda_pack}"',
-            "--prefix", f'"{self._env_dir}"',
-            "--output", f'"{dest}"',
-            "--format", "tar.gz",
-            "--force",
-        ]
-        self._conanfile.run(" ".join(cmd))
+        tool_env = self._ensure_conda_pack()
+        micromamba = self._resolve_micromamba()
+        self._conanfile.run(
+            f'"{micromamba}" run -p "{tool_env}" conda-pack '
+            f'--prefix "{self._env_dir}" --output "{dest}" '
+            f'--format tar.gz --force')
         return dest
 
     def unpack_archive(self, archive, prefix):

@@ -145,7 +145,6 @@ BUILT_IN_CONFS = {
     "tools.system.pyenv:python_interpreter": "(Experimental) Path to the Python interpreter to be used to create the virtualenv",
     "tools.system.pipenv:python_interpreter": "(Deprecated) Use 'tools.system.pyenv:python_interpreter' instead. Path to the Python interpreter to be used to create the virtualenv",
     "tools.system.condaenv:micromamba_path": "(Experimental) Path to a micromamba executable to be used by CondaEnv. If unset, CondaEnv looks for 'micromamba' on PATH",
-    "tools.system.condaenv:root_prefix": "(Experimental) Root directory for the conda package cache shared across recipes",
     "tools.apple:sdk_path": "Path to the SDK to be used",
     "tools.apple:enable_bitcode": "(boolean) Enable/Disable Bitcode Apple Clang flags",
     "tools.apple:enable_arc": "(boolean) Enable/Disable ARC Apple Clang flags",
