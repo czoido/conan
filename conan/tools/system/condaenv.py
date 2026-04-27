@@ -89,17 +89,20 @@ class CondaEnv:
                 f'--strict-channel-priority -c conda-forge "conda-pack"')
         return tool_env
 
-    def pack(self, dest=None):
+    _ARCHIVE_NAME = "condaenv.tar.gz"
+
+    def pack(self):
         """
-        Produce a relocatable tarball of the current conda prefix using ``conda-pack``.
-        Binaries, shebangs and scripts get rewritten to placeholder paths so the
-        tarball can be extracted anywhere and re-activated with ``conda-unpack``.
+        Produce a relocatable tarball of the current conda prefix at
+        ``{package_folder}/condaenv.tar.gz`` using ``conda-pack``. Binaries,
+        shebangs and scripts get rewritten to placeholder paths so the tarball
+        can be extracted anywhere and re-activated with ``conda-unpack``.
 
-        ``conda-pack`` is bootstrapped automatically into a shared tools env under the
-        Conan home the first time :meth:`pack` is called.
+        ``conda-pack`` is bootstrapped automatically into a shared tools env under
+        the Conan home the first time :meth:`pack` is called.
 
-        :param dest: Output tarball path. Defaults to
-                     ``{generators_folder}/condaenv.tar.gz``.
+        Intended to be called from ``package()``.
+
         :return: Absolute path to the generated tarball.
         """
         if not os.path.isdir(self._env_dir):
@@ -107,11 +110,7 @@ class CondaEnv:
                 f"CondaEnv.pack(): environment prefix {self._env_dir} does not exist. "
                 f"Call install() first.")
 
-        if dest is None:
-            dest = os.path.join(os.path.dirname(self._env_dir), "condaenv.tar.gz")
-        dest = os.path.abspath(dest)
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
-
+        dest = os.path.join(self._conanfile.package_folder, self._ARCHIVE_NAME)
         tool_env = self._ensure_conda_pack()
         micromamba = self._resolve_micromamba()
         self._conanfile.run(
@@ -120,27 +119,23 @@ class CondaEnv:
             f'--format tar.gz --force')
         return dest
 
-    def unpack_archive(self, archive, prefix):
+    def unpack(self):
         """
-        Extract a ``conda-pack``-generated tarball into ``prefix`` and finalize
-        path rewrites by invoking the bundled ``bin/conda-unpack`` script.
+        Extract the tarball produced by :meth:`pack` from
+        ``{immutable_package_folder}/condaenv.tar.gz`` into ``{package_folder}``
+        and finalize path rewrites by invoking the bundled ``bin/conda-unpack``
+        script.
 
-        Intended for use inside ``finalize()``:
+        Intended to be called from ``finalize()``.
 
-        .. code-block:: python
-
-            def finalize(self):
-                src = os.path.join(self.folders.immutable_package_folder,
-                                   "condaenv.tar.gz")
-                CondaEnv(self).unpack_archive(src, self.package_folder)
-
-        :param archive: Path to the tarball produced by :meth:`pack`.
-        :param prefix: Destination directory where the env will live.
+        :return: Absolute path to the extracted prefix (``package_folder``).
         """
+        archive = os.path.join(self._conanfile.folders.immutable_package_folder,
+                               self._ARCHIVE_NAME)
         if not os.path.isfile(archive):
-            raise ConanException(f"CondaEnv.unpack_archive(): archive '{archive}' "
+            raise ConanException(f"CondaEnv.unpack(): archive '{archive}' "
                                  f"does not exist")
-        prefix = os.path.abspath(prefix)
+        prefix = self._conanfile.package_folder
         os.makedirs(prefix, exist_ok=True)
 
         unzip(self._conanfile, archive, destination=prefix)
@@ -150,7 +145,7 @@ class CondaEnv:
                   else os.path.join(prefix, "bin", "conda-unpack"))
         if not os.path.isfile(unpack):
             raise ConanException(
-                f"CondaEnv.unpack_archive(): conda-unpack not found at {unpack}. "
+                f"CondaEnv.unpack(): conda-unpack not found at {unpack}. "
                 f"Was the archive produced by conda-pack?")
         if not is_windows:
             st = os.stat(unpack)
