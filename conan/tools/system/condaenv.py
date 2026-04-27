@@ -10,20 +10,12 @@ from conan.tools.files import unzip
 
 class CondaEnv:
     """
-    Helper that creates a local conda environment inside a recipe using micromamba
-    as the solver, and exposes the resulting prefix to the rest of the Conan build.
-
-    ``micromamba`` must be installed system-wide and available on ``PATH``.
-    ``conda-pack`` is bootstrapped automatically the first time :meth:`pack`
-    is called.
+    Creates a local conda environment in a recipe using ``micromamba``, and exposes
+    the resulting prefix to the Conan build. Requires ``micromamba`` on ``PATH``.
     """
 
     def __init__(self, conanfile, channels=None):
-        """
-        :param conanfile: The current conanfile ``self``.
-        :param channels: List of conda channels in priority order. Defaults to
-                         ``["conda-forge"]``.
-        """
+        """:param channels: Conda channels in priority order. Defaults to ``["conda-forge"]``."""
         self._conanfile = conanfile
         self._channels = list(channels) if channels else ["conda-forge"]
 
@@ -68,12 +60,7 @@ class CondaEnv:
         self._conanfile.run(" ".join(cmd))
 
     def install(self, *packages):
-        """
-        Install one or more conda packages into the local environment. Can be called
-        multiple times. Additional calls install into the existing prefix.
-
-        :param packages: Package specs, e.g. ``"numpy>=1.26"`` or ``"ros-kilted-ros-base"``.
-        """
+        """Install conda packages into the local environment. May be called repeatedly."""
         if not packages:
             return
         subcommand = "create" if not os.path.isdir(self._env_dir) else "install"
@@ -93,17 +80,8 @@ class CondaEnv:
 
     def pack(self):
         """
-        Produce a relocatable tarball of the current conda prefix at
-        ``{package_folder}/condaenv.tar.gz`` using ``conda-pack``. Binaries,
-        shebangs and scripts get rewritten to placeholder paths so the tarball
-        can be extracted anywhere and re-activated with ``conda-unpack``.
-
-        ``conda-pack`` is bootstrapped automatically into a shared tools env under
-        the Conan home the first time :meth:`pack` is called.
-
-        Intended to be called from ``package()``.
-
-        :return: Absolute path to the generated tarball.
+        Produce a relocatable tarball at ``{package_folder}/condaenv.tar.gz`` via
+        ``conda-pack``. Bootstraps ``conda-pack`` on first use. Call from ``package()``.
         """
         if not os.path.isdir(self._env_dir):
             raise ConanException(
@@ -121,14 +99,8 @@ class CondaEnv:
 
     def unpack(self):
         """
-        Extract the tarball produced by :meth:`pack` from
-        ``{immutable_package_folder}/condaenv.tar.gz`` into ``{package_folder}``
-        and finalize path rewrites by invoking the bundled ``bin/conda-unpack``
-        script.
-
-        Intended to be called from ``finalize()``.
-
-        :return: Absolute path to the extracted prefix (``package_folder``).
+        Extract the tarball from ``{immutable_package_folder}/condaenv.tar.gz`` into
+        ``{package_folder}`` and run ``conda-unpack``. Call from ``finalize()``.
         """
         archive = os.path.join(self._conanfile.folders.immutable_package_folder,
                                self._ARCHIVE_NAME)
@@ -154,10 +126,7 @@ class CondaEnv:
         return prefix
 
     def environment(self):
-        """
-        Build a :class:`conan.tools.env.Environment` populated with the variables
-        needed to consume the conda prefix from CMake and at runtime.
-        """
+        """:class:`Environment` with PATH, CMAKE_PREFIX_PATH and runtime libs for the conda prefix."""
         env = Environment()
         prefix = self._env_dir
         is_windows = str(self._conanfile.settings.get_safe("os")) == "Windows"
@@ -183,10 +152,7 @@ class CondaEnv:
         return env
 
     def generate(self):
-        """
-        Generate the environment script (``conancondaenv.sh`` / ``.bat``) and integrate
-        the conda prefix with ``VirtualBuildEnv``.
-        """
+        """Save ``conancondaenv`` script and compose the env into ``VirtualBuildEnv``."""
         env = self.environment()
         env.vars(self._conanfile).save_script("conancondaenv")
 
