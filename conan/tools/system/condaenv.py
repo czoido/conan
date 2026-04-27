@@ -4,7 +4,7 @@ import stat
 
 from conan.errors import ConanException
 from conan.internal.paths import get_conan_user_home
-from conan.tools.env import Environment, VirtualBuildEnv
+from conan.tools.env import Environment
 from conan.tools.files import unzip
 
 
@@ -152,11 +152,6 @@ class CondaEnv:
         return env
 
     def generate(self):
-        """Save ``conancondaenv`` script and compose the env into ``VirtualBuildEnv``."""
+        """Save ``conancondaenv`` env script. The aggregator picks it up into ``conanbuild``."""
         env = self.environment()
         env.vars(self._conanfile).save_script("conancondaenv")
-
-        vbe = VirtualBuildEnv(self._conanfile)
-        build_env = vbe.environment()
-        build_env.compose_env(env)
-        vbe.generate()
