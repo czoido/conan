@@ -70,7 +70,7 @@ class CondaEnv:
     def install(self, *packages):
         """
         Install one or more conda packages into the local environment. Can be called
-        multiple times; additional calls install into the existing prefix.
+        multiple times. Additional calls install into the existing prefix.
 
         :param packages: Package specs, e.g. ``"numpy>=1.26"`` or ``"ros-kilted-ros-base"``.
         """
