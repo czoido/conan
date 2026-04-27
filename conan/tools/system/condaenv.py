@@ -11,6 +11,7 @@ class CondaEnv:
     """
     Creates a local conda environment in a recipe using ``micromamba``, and exposes
     the resulting prefix to the Conan build. Requires ``micromamba`` on ``PATH``.
+    Recipes that call :meth:`pack` must also expose ``conda-pack`` on ``PATH``.
     """
 
     def __init__(self, conanfile, channels=None):
@@ -66,22 +67,13 @@ class CondaEnv:
         subcommand = "create" if not os.path.isdir(self._env_dir) else "install"
         self._run_micromamba(subcommand, packages)
 
-    def _ensure_conda_pack(self):
-        """Bootstrap conda-pack into a sibling env in the build folder. Returns its path."""
-        tool_env = os.path.join(self._conanfile.build_folder, ".condaenv-tools", "conda-pack")
-        if not os.path.isdir(os.path.join(tool_env, "conda-meta")):
-            micromamba = self._resolve_micromamba()
-            self._conanfile.run(
-                f'"{micromamba}" create -p "{tool_env}" --yes --no-rc --no-env '
-                f'--strict-channel-priority -c conda-forge "conda-pack"')
-        return tool_env
-
     _ARCHIVE_NAME = "condaenv.tar.gz"
 
     def pack(self):
         """
         Produce a relocatable tarball at ``{package_folder}/condaenv.tar.gz`` via
-        ``conda-pack``. Bootstraps ``conda-pack`` on first use. Call from ``package()``.
+        ``conda-pack``. Requires ``conda-pack`` on ``PATH`` (install system-wide
+        or expose it through ``PyEnv`` from the recipe). Call from ``package()``.
         """
         if not os.path.isdir(self._env_dir):
             raise ConanException(
@@ -89,11 +81,8 @@ class CondaEnv:
                 f"Call install() first.")
 
         dest = os.path.join(self._conanfile.package_folder, self._ARCHIVE_NAME)
-        tool_env = self._ensure_conda_pack()
-        micromamba = self._resolve_micromamba()
         self._conanfile.run(
-            f'"{micromamba}" run -p "{tool_env}" conda-pack '
-            f'--prefix "{self._env_dir}" --output "{dest}" '
+            f'conda-pack --prefix "{self._env_dir}" --output "{dest}" '
             f'--format tar.gz --force')
         return dest
 
