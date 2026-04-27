@@ -3,7 +3,6 @@ import shutil
 import stat
 
 from conan.errors import ConanException
-from conan.internal.paths import get_conan_user_home
 from conan.tools.env import Environment
 from conan.tools.files import unzip
 
@@ -68,8 +67,8 @@ class CondaEnv:
         self._run_micromamba(subcommand, packages)
 
     def _ensure_conda_pack(self):
-        """Bootstrap conda-pack into a shared tools env under the Conan home."""
-        tool_env = os.path.join(get_conan_user_home(), "condaenv", "tools", "conda-pack")
+        """Bootstrap conda-pack into a sibling env in the build folder. Returns its path."""
+        tool_env = os.path.join(self._conanfile.build_folder, ".condaenv-tools", "conda-pack")
         if not os.path.isdir(os.path.join(tool_env, "conda-meta")):
             micromamba = self._resolve_micromamba()
             self._conanfile.run(
