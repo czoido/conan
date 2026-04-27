@@ -51,9 +51,8 @@ class CondaEnv:
             self._micromamba = "micromamba"
         else:
             raise ConanException(
-                "CondaEnv: 'micromamba' not found. Install it system-wide "
-                " or point to your current instalation defining: "
-                "'tools.system.condaenv:micromamba_path'.")
+                "CondaEnv: 'micromamba' not found. Install it system-wide or point to "
+                "an existing installation via 'tools.system.condaenv:micromamba_path'.")
         return self._micromamba
 
     def _run_micromamba(self, subcommand, packages):
