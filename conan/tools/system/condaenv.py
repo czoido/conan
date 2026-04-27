@@ -18,10 +18,11 @@ class CondaEnv:
         """:param channels: Conda channels in priority order. Defaults to ``["conda-forge"]``."""
         self._conanfile = conanfile
         self._channels = list(channels) if channels else ["conda-forge"]
-
-        self._env_dir = os.path.join(conanfile.generators_folder, "condaenv")
-
         self._micromamba = None
+
+    @property
+    def _env_dir(self):
+        return os.path.join(self._conanfile.generators_folder, "condaenv")
 
     @property
     def env_dir(self):
