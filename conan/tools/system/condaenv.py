@@ -31,7 +31,7 @@ class CondaEnv:
         self._env_dir = os.path.abspath(os.path.join(generators_folder, "condaenv"))
 
         self._installed = []
-        self._micromamba_checked = False
+        self._micromamba = None
 
     @property
     def env_dir(self):
@@ -50,24 +50,34 @@ class CondaEnv:
             return f'set "MAMBA_ROOT_PREFIX={root_prefix}" && '
         return f'MAMBA_ROOT_PREFIX="{root_prefix}" '
 
-    def _check_micromamba(self):
-        if self._micromamba_checked:
-            return
-        if shutil.which("micromamba") is None:
+    def _resolve_micromamba(self):
+        if self._micromamba is not None:
+            return self._micromamba
+        conf_path = self._conanfile.conf.get("tools.system.condaenv:micromamba_path")
+        if conf_path:
+            if not os.path.isfile(conf_path):
+                raise ConanException(
+                    f"CondaEnv: 'tools.system.condaenv:micromamba_path' points to "
+                    f"'{conf_path}' which does not exist")
+            self._micromamba = conf_path
+        elif shutil.which("micromamba"):
+            self._micromamba = "micromamba"
+        else:
             raise ConanException(
-                "CondaEnv: 'micromamba' not found on PATH. Install it system-wide "
+                "CondaEnv: 'micromamba' not found. Install it system-wide "
                 "(e.g. `brew install micromamba`, or follow "
                 "https://mamba.readthedocs.io/en/latest/installation/"
-                "micromamba-installation.html).")
-        self._micromamba_checked = True
+                "micromamba-installation.html), or configure "
+                "'tools.system.condaenv:micromamba_path'.")
+        return self._micromamba
 
     def _run_micromamba(self, subcommand, packages):
-        self._check_micromamba()
+        micromamba = self._resolve_micromamba()
         channel_args = []
         for ch in self._channels:
             channel_args.extend(["-c", ch])
         cmd = [
-            "micromamba", subcommand,
+            f'"{micromamba}"', subcommand,
             "-p", f'"{self._env_dir}"',
             "--yes", "--no-rc", "--no-env",
             "--strict-channel-priority",
@@ -94,8 +104,8 @@ class CondaEnv:
         exe = (os.path.join(tool_env, "Scripts", "conda-pack.exe") if os.name == "nt"
                else os.path.join(tool_env, "bin", "conda-pack"))
         if not os.path.isfile(exe):
-            self._check_micromamba()
-            cmd = (f'micromamba create -p "{tool_env}" --yes --no-rc --no-env '
+            micromamba = self._resolve_micromamba()
+            cmd = (f'"{micromamba}" create -p "{tool_env}" --yes --no-rc --no-env '
                    f'--strict-channel-priority -c conda-forge "conda-pack"')
             self._conanfile.run(self._base_cmd() + cmd)
         return exe
