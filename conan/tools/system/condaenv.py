@@ -4,7 +4,7 @@ import stat
 
 from conan.errors import ConanException
 from conan.internal.paths import get_conan_user_home
-from conan.tools.env.environment import Environment
+from conan.tools.env import Environment, VirtualBuildEnv
 
 
 class CondaEnv:
@@ -97,7 +97,7 @@ class CondaEnv:
         tarball can be extracted anywhere and re-activated with ``conda-unpack``.
 
         ``conda-pack`` is bootstrapped automatically into a shared tools env under the
-        root prefix the first time :meth:`pack` is called.
+        Conan home the first time :meth:`pack` is called.
 
         :param dest: Output tarball path. Defaults to
                      ``{generators_folder}/condaenv.tar.gz``.
@@ -197,7 +197,6 @@ class CondaEnv:
         env = self.environment()
         env.vars(self._conanfile).save_script("conancondaenv")
 
-        from conan.tools.env import VirtualBuildEnv
         vbe = VirtualBuildEnv(self._conanfile)
         build_env = vbe.environment()
         build_env.compose_env(env)
