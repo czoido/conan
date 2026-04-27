@@ -30,7 +30,6 @@ class CondaEnv:
                              or os.getcwd())
         self._env_dir = os.path.abspath(os.path.join(generators_folder, "condaenv"))
 
-        self._installed = []
         self._micromamba = None
 
     @property
@@ -93,10 +92,8 @@ class CondaEnv:
         """
         if not packages:
             return
-        pkgs = list(packages)
         subcommand = "create" if not os.path.isdir(self._env_dir) else "install"
-        self._run_micromamba(subcommand, pkgs)
-        self._installed.extend(pkgs)
+        self._run_micromamba(subcommand, packages)
 
     def _ensure_conda_pack(self):
         """Bootstrap conda-pack into a shared tools env under the root prefix."""
@@ -129,9 +126,7 @@ class CondaEnv:
                 f"Call install() first.")
 
         if dest is None:
-            generators_folder = (self._conanfile.generators_folder
-                                 or self._conanfile.build_folder or os.getcwd())
-            dest = os.path.join(generators_folder, "condaenv.tar.gz")
+            dest = os.path.join(os.path.dirname(self._env_dir), "condaenv.tar.gz")
         dest = os.path.abspath(dest)
         os.makedirs(os.path.dirname(dest), exist_ok=True)
 
@@ -212,18 +207,7 @@ class CondaEnv:
                 env.prepend_path("LD_LIBRARY_PATH", os.path.join(prefix, "lib"))
 
         env.define_path("CONDA_PREFIX", prefix)
-
-        if self._has_ros_packages():
-            env.prepend_path("AMENT_PREFIX_PATH", prefix)
-
         return env
-
-    def _has_ros_packages(self):
-        for p in self._installed:
-            name = p.split("=", 1)[0].split("<", 1)[0].split(">", 1)[0].strip()
-            if name.startswith("ros-") or name.startswith("ament-"):
-                return True
-        return False
 
     def generate(self):
         """
