@@ -102,6 +102,7 @@ class CondaEnv:
 
         unzip(self._conanfile, archive, destination=prefix)
 
+        # conda-unpack ships inside the tarball (no conda-pack needed here).
         is_windows = platform.system() == "Windows"
         unpack = (os.path.join(prefix, "Scripts", "conda-unpack.exe") if is_windows
                   else os.path.join(prefix, "bin", "conda-unpack"))
