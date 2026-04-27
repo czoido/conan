@@ -5,6 +5,7 @@ import stat
 from conan.errors import ConanException
 from conan.internal.paths import get_conan_user_home
 from conan.tools.env import Environment, VirtualBuildEnv
+from conan.tools.files import unzip
 
 
 class CondaEnv:
@@ -26,8 +27,7 @@ class CondaEnv:
         self._conanfile = conanfile
         self._channels = list(channels) if channels else ["conda-forge"]
 
-        self._env_dir = os.path.abspath(os.path.join(conanfile.generators_folder,
-                                                     "condaenv"))
+        self._env_dir = os.path.join(conanfile.generators_folder, "condaenv")
 
         self._micromamba = None
 
@@ -143,7 +143,6 @@ class CondaEnv:
         prefix = os.path.abspath(prefix)
         os.makedirs(prefix, exist_ok=True)
 
-        from conan.tools.files import unzip
         unzip(self._conanfile, archive, destination=prefix)
 
         is_windows = os.name == "nt"
