@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 import stat
 
@@ -101,7 +102,7 @@ class CondaEnv:
 
         unzip(self._conanfile, archive, destination=prefix)
 
-        is_windows = os.name == "nt"
+        is_windows = platform.system() == "Windows"
         unpack = (os.path.join(prefix, "Scripts", "conda-unpack.exe") if is_windows
                   else os.path.join(prefix, "bin", "conda-unpack"))
         if not os.path.isfile(unpack):
