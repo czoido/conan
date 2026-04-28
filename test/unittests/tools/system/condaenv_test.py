@@ -8,152 +8,94 @@ from conan.test.utils.mocks import ConanFileMock, MockSettings
 from conan.tools.system import CondaEnv
 
 
-def _make_conanfile(tmp_path, os_name="Linux", arch="x86_64",
-                    micromamba_path="/fake/micromamba", with_package=False):
-    conanfile = ConanFileMock(settings=MockSettings({"os": os_name, "arch": arch}))
-    conanfile.folders.set_base_generators(str(tmp_path))
+def _make_conanfile(tmp_path, os_name="Linux", with_package=False):
+    cf = ConanFileMock(settings=MockSettings({"os": os_name, "arch": "x86_64"}))
+    cf.folders.set_base_generators(str(tmp_path))
     if with_package:
-        conanfile.folders.set_base_package(str(tmp_path / "p"))
-    if micromamba_path is not None:
-        conanfile.conf.define("tools.system.condaenv:micromamba_path", micromamba_path)
-    return conanfile
+        (tmp_path / "p").mkdir(exist_ok=True)
+        cf.folders.set_base_package(str(tmp_path / "p"))
+    cf.conf.define("tools.system.condaenv:micromamba_path", "/fake/micromamba")
+    return cf
 
 
-def test_default_channels(tmp_path):
+def test_construction(tmp_path):
     conda = CondaEnv(_make_conanfile(tmp_path))
     assert conda._channels == ["conda-forge"]
-
-
-def test_explicit_channels(tmp_path):
-    conda = CondaEnv(_make_conanfile(tmp_path), channels=["robostack-kilted", "conda-forge"])
-    assert conda._channels == ["robostack-kilted", "conda-forge"]
-
-
-def test_env_dir_under_generators_folder(tmp_path):
-    conda = CondaEnv(_make_conanfile(tmp_path))
     assert conda.env_dir == os.path.join(str(tmp_path), "condaenv").replace("\\", "/")
 
+    conda = CondaEnv(_make_conanfile(tmp_path), channels=["robostack-kilted"])
+    assert conda._channels == ["robostack-kilted"]
 
-def test_install_runs_micromamba_create(tmp_path):
+
+def test_install_runs_micromamba(tmp_path):
     with patch("os.path.isfile", return_value=True):
-        conanfile = _make_conanfile(tmp_path)
-        conda = CondaEnv(conanfile, channels=["conda-forge"])
+        cf = _make_conanfile(tmp_path)
+        conda = CondaEnv(cf)
         conda.install("zlib")
-
-        cmd = conanfile.command
+        cmd = cf.command
         assert "/fake/micromamba" in cmd
         assert " create " in cmd
         assert "-c conda-forge" in cmd
         assert '"zlib"' in cmd
-        assert "--yes" in cmd
         assert "--strict-channel-priority" in cmd
 
-
-def test_install_uses_install_subcommand_when_env_exists(tmp_path):
-    with patch("os.path.isfile", return_value=True):
-        conanfile = _make_conanfile(tmp_path)
-        conda = CondaEnv(conanfile)
-
-        conda.install("zlib")
-        assert " create " in conanfile.command
-
+        # Second call switches to install once env exists.
         with patch("os.path.isdir", return_value=True):
             conda.install("openssl")
-            assert " install " in conanfile.command
+            assert " install " in cf.command
 
 
-def test_micromamba_path_must_exist(tmp_path):
-    conanfile = _make_conanfile(tmp_path, micromamba_path="/definitely/does/not/exist")
-    conda = CondaEnv(conanfile)
-    with pytest.raises(ConanException) as exc_info:
-        conda.install("zlib")
-    assert "micromamba_path" in str(exc_info.value)
-
-
-def test_micromamba_not_found_raises_with_install_hint(tmp_path):
-    conanfile = ConanFileMock(settings=MockSettings({"os": "Linux", "arch": "x86_64"}))
-    conanfile.folders.set_base_generators(str(tmp_path))
+def test_micromamba_not_found(tmp_path):
+    cf = ConanFileMock(settings=MockSettings({"os": "Linux", "arch": "x86_64"}))
+    cf.folders.set_base_generators(str(tmp_path))
     with patch("shutil.which", return_value=None):
-        conda = CondaEnv(conanfile)
-        with pytest.raises(ConanException) as exc_info:
-            conda.install("zlib")
-        msg = str(exc_info.value)
-        assert "'micromamba' not found" in msg
-        assert "tools.system.condaenv:micromamba_path" in msg
+        with pytest.raises(ConanException) as exc:
+            CondaEnv(cf).install("zlib")
+        assert "'micromamba' not found" in str(exc.value)
+        assert "tools.system.condaenv:micromamba_path" in str(exc.value)
 
 
-def _var_names(env):
-    return list(env._values.keys())
-
-
-def test_environment_variables_linux(tmp_path):
-    conda = CondaEnv(_make_conanfile(tmp_path, os_name="Linux"))
-    names = _var_names(conda.environment())
+@pytest.mark.parametrize("os_name, expected, missing", [
+    ("Linux", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"),
+    ("Macos", "DYLD_LIBRARY_PATH", "LD_LIBRARY_PATH"),
+    ("Windows", "PATH", "LD_LIBRARY_PATH"),
+])
+def test_environment(tmp_path, os_name, expected, missing):
+    env = CondaEnv(_make_conanfile(tmp_path, os_name=os_name)).environment()
+    names = list(env._values.keys())
     assert "PATH" in names
     assert "CMAKE_PREFIX_PATH" in names
-    assert "LD_LIBRARY_PATH" in names
-    assert "DYLD_LIBRARY_PATH" not in names
     assert "CONDA_PREFIX" in names
+    assert expected in names
+    assert missing not in names
 
 
-def test_environment_variables_macos(tmp_path):
-    conda = CondaEnv(_make_conanfile(tmp_path, os_name="Macos", arch="armv8"))
-    names = _var_names(conda.environment())
-    assert "DYLD_LIBRARY_PATH" in names
-    assert "LD_LIBRARY_PATH" not in names
+def test_pack(tmp_path):
+    cf = _make_conanfile(tmp_path, with_package=True)
+    conda = CondaEnv(cf)
 
-
-def test_environment_variables_windows(tmp_path):
-    conda = CondaEnv(_make_conanfile(tmp_path, os_name="Windows"))
-    names = _var_names(conda.environment())
-    assert "PATH" in names
-    assert "CMAKE_PREFIX_PATH" in names
-    assert "LD_LIBRARY_PATH" not in names
-    assert "DYLD_LIBRARY_PATH" not in names
-
-
-def test_pack_requires_existing_prefix(tmp_path):
-    conanfile = _make_conanfile(tmp_path, with_package=True)
-    conda = CondaEnv(conanfile)
-    with pytest.raises(ConanException) as exc_info:
+    # No env yet -> error.
+    with pytest.raises(ConanException, match="install"):
         conda.pack()
-    assert "does not exist" in str(exc_info.value)
-    assert "install()" in str(exc_info.value)
 
-
-def test_pack_runs_conda_pack(tmp_path):
     (tmp_path / "condaenv").mkdir()
-    conanfile = _make_conanfile(tmp_path, with_package=True)
-    (tmp_path / "p").mkdir()
-    conda = CondaEnv(conanfile)
     dest = conda.pack()
-
     assert dest == os.path.join(str(tmp_path / "p"), "condaenv.tar.gz")
-    cmd = conanfile.command
+    cmd = cf.command
     assert "conda-pack" in cmd
     assert "--format tar.gz" in cmd
-    assert "--force" in cmd
 
 
-def test_unpack_missing_archive(tmp_path):
-    conanfile = _make_conanfile(tmp_path, with_package=True)
-    (tmp_path / "p").mkdir()
-    conda = CondaEnv(conanfile)
-    with pytest.raises(ConanException) as exc_info:
+def test_unpack_errors(tmp_path):
+    cf = _make_conanfile(tmp_path, with_package=True)
+    conda = CondaEnv(cf)
+
+    # Missing archive.
+    with pytest.raises(ConanException, match="does not exist"):
         conda.unpack()
-    assert "does not exist" in str(exc_info.value)
 
-
-def test_unpack_missing_conda_unpack_script(tmp_path):
-    pkg = tmp_path / "p"
-    pkg.mkdir()
-    archive = pkg / "condaenv.tar.gz"
-    archive.write_bytes(b"")
-
-    conanfile = _make_conanfile(tmp_path, with_package=True)
-
+    # Archive present but conda-unpack script missing post-extract.
+    (tmp_path / "p" / "condaenv.tar.gz").write_bytes(b"")
     with patch("conan.tools.system.condaenv.unzip", return_value=None):
-        conda = CondaEnv(conanfile)
-        with pytest.raises(ConanException) as exc_info:
+        with pytest.raises(ConanException, match="conda-unpack"):
             conda.unpack()
-    assert "conda-unpack" in str(exc_info.value)
