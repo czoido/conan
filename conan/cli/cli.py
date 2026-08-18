@@ -294,13 +294,12 @@ def main(args):
 
     cli = Cli(conan_api)
     error = SUCCESS
-    with command_log_context(conan_api, args) as command_log:
+    with command_log_context(conan_api, args):
         try:
             cli.run(args)
             _warn_python_version()
         except BaseException as e:
             error = cli.exception_exit_error(e)
-        command_log.set_exit_code(error)
     sys.exit(error)
 
 

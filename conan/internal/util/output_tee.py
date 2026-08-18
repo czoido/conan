@@ -19,13 +19,6 @@ class LogFile:
         # Conan prints from several threads, like the parallel downloads and uploads
         self._lock = threading.Lock()
 
-    def comment(self, text):
-        """ A metadata line of the header or the footer """
-        with self._lock:
-            if not self._file.closed:
-                self._file.write(f"# {text}\n")
-                self._file.flush()
-
     def write(self, data):
         data = _ANSI_ESCAPE_RE.sub("", data)
         if not data:
